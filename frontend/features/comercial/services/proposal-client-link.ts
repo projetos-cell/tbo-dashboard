@@ -94,6 +94,11 @@ export async function getProposalByToken(
 /**
  * Submits the client's decision (approve/reject) for a proposal.
  */
+const DECISION_TO_STATUS: Record<ClientDecision, string> = {
+  approved: "aprovada",
+  rejected: "recusada",
+};
+
 export async function submitClientDecision(
   supabase: SupabaseClient<Database>,
   token: string,
@@ -102,7 +107,7 @@ export async function submitClientDecision(
   const { error } = await supabase
     .from("proposals" as never)
     .update({
-      status: decision,
+      status: DECISION_TO_STATUS[decision],
       client_decided_at: new Date().toISOString(),
       client_feedback: feedback ?? null,
       ...(decision === "approved" ? { approved_at: new Date().toISOString() } : {}),

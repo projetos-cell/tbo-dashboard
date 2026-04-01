@@ -25,10 +25,20 @@ export interface ProposalRow {
   discount_amount: number;
   value: number;          // total final
   notes: string | null;
+  introduction: string | null;
+  show_d3d_flow: boolean;
+  payment_conditions: PaymentConditionOption[] | null;
   deal_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface PaymentConditionOption {
+  label: string;
+  description: string;
+  highlight?: boolean;
+  details?: string;
 }
 
 export interface ProposalInsert {
@@ -50,6 +60,9 @@ export interface ProposalInsert {
   discount_amount?: number;
   value?: number;
   notes?: string | null;
+  introduction?: string | null;
+  show_d3d_flow?: boolean;
+  payment_conditions?: PaymentConditionOption[] | null;
   deal_id?: string | null;
 }
 

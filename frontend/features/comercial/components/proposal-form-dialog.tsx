@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -32,13 +33,15 @@ interface FormValues {
   project_location: string;
   valid_days: string;
   notes: string;
+  introduction: string;
+  show_d3d_flow: boolean;
 }
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   proposal?: ProposalRow | null;
-  onSubmit: (values: Omit<FormValues, "valid_days"> & { valid_days: number }) => void;
+  onSubmit: (values: Omit<FormValues, "valid_days"> & { valid_days: number; show_d3d_flow: boolean }) => void;
   isPending: boolean;
 }
 
@@ -59,6 +62,7 @@ export function ProposalFormDialog({ open, onOpenChange, proposal, onSubmit, isP
       name: "", client: "", company: "", contact_name: "",
       contact_email: "", contact_phone: "", project_type: "",
       project_location: "", valid_days: "30", notes: "",
+      introduction: "", show_d3d_flow: false,
     },
   });
 
@@ -75,12 +79,15 @@ export function ProposalFormDialog({ open, onOpenChange, proposal, onSubmit, isP
         project_location: proposal.project_location ?? "",
         valid_days: String(proposal.valid_days ?? 30),
         notes: proposal.notes ?? "",
+        introduction: proposal.introduction ?? "",
+        show_d3d_flow: proposal.show_d3d_flow ?? false,
       });
     } else {
       reset({
         name: "", client: "", company: "", contact_name: "",
         contact_email: "", contact_phone: "", project_type: "",
         project_location: "", valid_days: "30", notes: "",
+        introduction: "", show_d3d_flow: false,
       });
     }
   }, [proposal, reset]);
@@ -172,6 +179,38 @@ export function ProposalFormDialog({ open, onOpenChange, proposal, onSubmit, isP
             <div className="mt-3">
               <Label className="text-xs">Observações / Condições Comerciais</Label>
               <Textarea rows={3} placeholder="Forma de pagamento, prazos, condições especiais..." {...register("notes")} />
+            </div>
+          </div>
+
+          {/* Proposta Interativa */}
+          <div className="border-t pt-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              Proposta Interativa
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-xs">Incluir fluxo D3D</Label>
+                  <p className="text-[10px] text-muted-foreground">
+                    Exibe processo, timeline, diferenciais TBO e upsell na proposta pública
+                  </p>
+                </div>
+                <Switch
+                  checked={watch("show_d3d_flow")}
+                  onCheckedChange={(v) => setValue("show_d3d_flow", v)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Texto de Apresentação</Label>
+                <Textarea
+                  rows={4}
+                  placeholder="Contexto estratégico do projeto — por que estas imagens, qual a lógica comercial..."
+                  {...register("introduction")}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Aparece antes do escopo na proposta pública. Use para justificar o &quot;porquê&quot; antes do &quot;quanto&quot;.
+                </p>
+              </div>
             </div>
           </div>
 

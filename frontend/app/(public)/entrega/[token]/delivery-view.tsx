@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
+import Image from "next/image";
 import {
   motion,
   useScroll,
@@ -16,7 +17,6 @@ import {
   IconExternalLink,
   IconFileZip,
   IconChevronDown,
-  IconArrowRight,
   IconDownload,
   IconCalendar,
   IconBuilding,
@@ -78,6 +78,30 @@ function formatDate(dateStr: string) {
   });
 }
 
+/**
+ * Convert Google Drive share/view URLs into direct download URLs.
+ * For folder URLs or non-Drive URLs, returns null (open externally).
+ */
+function getDirectDownloadUrl(url: string): string | null {
+  // Match /file/d/FILE_ID/ pattern
+  const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch) {
+    return `https://drive.google.com/uc?export=download&id=${fileMatch[1]}`;
+  }
+  // Match ?id=FILE_ID pattern
+  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch && !url.includes("/folders/")) {
+    return `https://drive.google.com/uc?export=download&id=${idMatch[1]}`;
+  }
+  // Folder or non-Drive URLs — cannot direct download
+  return null;
+}
+
+/** Returns true if the deliverable type supports direct download */
+function isDownloadable(type: string): boolean {
+  return ["pdf", "dwg", "image", "zip", "video"].includes(type);
+}
+
 // ── Stagger Variants ────────────────────────────────────────
 const staggerContainer: Variants = {
   hidden: { opacity: 0 },
@@ -121,20 +145,20 @@ function HeroSection({
   return (
     <section
       ref={heroRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white"
     >
-      {/* Animated gradient orbs */}
+      {/* Subtle gradient orbs — light mode */}
       <div className="absolute inset-0 z-0">
         <div
-          className="absolute w-[500px] h-[500px] rounded-full opacity-20 blur-[140px] animate-[drift1_20s_ease-in-out_infinite]"
+          className="absolute w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[140px] animate-[drift1_20s_ease-in-out_infinite]"
           style={{ background: accentColor, top: "10%", right: "10%" }}
         />
         <div
-          className="absolute w-[400px] h-[400px] rounded-full opacity-15 blur-[120px] animate-[drift2_25s_ease-in-out_infinite]"
-          style={{ background: "#1a1a3e", bottom: "10%", left: "5%" }}
+          className="absolute w-[400px] h-[400px] rounded-full opacity-[0.05] blur-[120px] animate-[drift2_25s_ease-in-out_infinite]"
+          style={{ background: "#e0dcd8", bottom: "10%", left: "5%" }}
         />
         <div
-          className="absolute w-[300px] h-[300px] rounded-full opacity-10 blur-[100px] animate-[drift3_18s_ease-in-out_infinite]"
+          className="absolute w-[300px] h-[300px] rounded-full opacity-[0.06] blur-[100px] animate-[drift3_18s_ease-in-out_infinite]"
           style={{ background: accentColor, top: "40%", left: "40%" }}
         />
       </div>
@@ -144,17 +168,22 @@ function HeroSection({
         style={{ y: contentY, opacity }}
         className="relative z-10 text-center px-4 max-w-4xl mx-auto"
       >
-        {/* TBO Wordmark */}
+        {/* TBO Logo */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2, ease: EASE_OUT }}
-          className="mb-12"
+          className="mb-12 flex flex-col items-center"
         >
-          <p className="text-sm font-bold tracking-[0.4em] text-white/40 uppercase">
-            TBO
-          </p>
-          <p className="text-[10px] tracking-[0.3em] text-white/20 uppercase mt-1">
+          <Image
+            src="/logo-tbo.svg"
+            alt="TBO — The Branding Office"
+            width={80}
+            height={32}
+            className="h-8 w-auto opacity-40"
+            priority
+          />
+          <p className="text-[10px] tracking-[0.3em] text-zinc-400 uppercase mt-2">
             The Branding Office
           </p>
         </motion.div>
@@ -171,7 +200,7 @@ function HeroSection({
                 delay: 0.5 + i * 0.035,
                 ease: EASE_OUT,
               }}
-              className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-tight"
+              className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-tight text-zinc-900"
               style={{ display: "inline-block", whiteSpace: "pre" }}
             >
               {letter === " " ? "\u00A0" : letter}
@@ -184,7 +213,7 @@ function HeroSection({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.9, ease: EASE_OUT }}
-          className="text-lg sm:text-xl text-white/50 mt-6 font-light tracking-wide"
+          className="text-lg sm:text-xl text-zinc-400 mt-6 font-light tracking-wide"
         >
           {clientCompany ?? ""}
         </motion.p>
@@ -195,7 +224,7 @@ function HeroSection({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, delay: 1.1, ease: EASE_OUT }}
-            className="text-sm text-white/30 mt-3 tracking-widest uppercase"
+            className="text-sm text-zinc-400 mt-3 tracking-widest uppercase"
           >
             {heroSubtitle}
           </motion.p>
@@ -221,7 +250,7 @@ function HeroSection({
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
-            <IconChevronDown size={24} className="text-white/20" />
+            <IconChevronDown size={24} className="text-zinc-300" />
           </motion.div>
         </motion.div>
       </motion.div>
@@ -250,12 +279,12 @@ function ContextSection({
         transition={{ duration: 0.6, ease: EASE_OUT }}
         className="max-w-2xl mx-auto text-center"
       >
-        <p className="text-xs tracking-[0.3em] text-white/30 uppercase mb-6">
+        <p className="text-xs tracking-[0.3em] text-zinc-400 uppercase mb-6">
           Sobre esta entrega
         </p>
 
         {description && (
-          <p className="text-lg sm:text-xl text-white/70 leading-relaxed font-light">
+          <p className="text-lg sm:text-xl text-zinc-600 leading-relaxed font-light">
             {description}
           </p>
         )}
@@ -263,19 +292,19 @@ function ContextSection({
         {/* Metadata */}
         <div className="flex flex-wrap justify-center gap-6 mt-10">
           {deliveryDate && (
-            <div className="flex items-center gap-2 text-sm text-white/40">
+            <div className="flex items-center gap-2 text-sm text-zinc-400">
               <IconCalendar size={16} />
               <span>{formatDate(deliveryDate)}</span>
             </div>
           )}
           {clientCompany && (
-            <div className="flex items-center gap-2 text-sm text-white/40">
+            <div className="flex items-center gap-2 text-sm text-zinc-400">
               <IconBuilding size={16} />
               <span>{clientCompany}</span>
             </div>
           )}
           {deliveredBy && (
-            <div className="flex items-center gap-2 text-sm text-white/40">
+            <div className="flex items-center gap-2 text-sm text-zinc-400">
               <IconUser size={16} />
               <span>{deliveredBy}</span>
             </div>
@@ -297,38 +326,61 @@ function DeliverableCard({
   const Icon = TYPE_ICONS[deliverable.type] ?? IconExternalLink;
   const typeLabel = TYPE_LABELS[deliverable.type] ?? deliverable.type;
 
+  const canDownload = isDownloadable(deliverable.type);
+  const directUrl = getDirectDownloadUrl(deliverable.url);
+  const downloadUrl = canDownload && directUrl ? directUrl : null;
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (downloadUrl) {
+        // Trigger direct download via hidden anchor
+        e.preventDefault();
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = "";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      // For folders/links: default <a> behaviour (open in new tab)
+    },
+    [downloadUrl],
+  );
+
   return (
     <motion.a
-      href={deliverable.url}
-      target="_blank"
+      href={downloadUrl ?? deliverable.url}
+      target={downloadUrl ? undefined : "_blank"}
       rel="noopener noreferrer"
+      onClick={handleClick}
       variants={staggerItem}
       whileHover={{
         y: -6,
         transition: { duration: 0.25 },
       }}
-      className="group block rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm p-6 sm:p-8 transition-shadow duration-300 hover:shadow-[0_8px_40px_rgba(255,98,0,0.1)]"
+      className="group block rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 transition-all duration-300 hover:shadow-lg hover:border-zinc-300"
     >
       {/* Icon */}
       <div
         className="w-14 h-14 rounded-xl flex items-center justify-center transition-colors duration-300"
         style={{
-          backgroundColor: `${accentColor}15`,
+          backgroundColor: `${accentColor}12`,
         }}
       >
         <Icon
           size={28}
           className="transition-colors duration-300"
-          style={{ color: `${accentColor}99` }}
+          style={{ color: accentColor }}
         />
       </div>
 
       {/* Content */}
-      <h3 className="text-lg font-semibold text-white mt-5">
+      <h3 className="text-lg font-semibold text-zinc-900 mt-5">
         {deliverable.title}
       </h3>
       {deliverable.description && (
-        <p className="text-sm text-white/40 mt-2 leading-relaxed line-clamp-3">
+        <p className="text-sm text-zinc-500 mt-2 leading-relaxed line-clamp-3">
           {deliverable.description}
         </p>
       )}
@@ -337,17 +389,23 @@ function DeliverableCard({
       <div className="flex items-center justify-between mt-6">
         <Badge
           variant="outline"
-          className="text-[10px] uppercase tracking-widest border-white/10 text-white/30 bg-transparent"
+          className="text-[10px] uppercase tracking-widest border-zinc-200 text-zinc-400 bg-transparent"
         >
           {typeLabel}
           {deliverable.file_size && ` · ${deliverable.file_size}`}
         </Badge>
-        <div className="flex items-center gap-1 text-white/30 group-hover:text-white/70 transition-colors duration-300">
-          <span className="text-xs font-medium">Acessar</span>
-          <IconArrowRight
-            size={14}
-            className="transition-transform duration-300 group-hover:translate-x-1"
-          />
+        <div className="flex items-center gap-1 text-zinc-400 group-hover:text-zinc-700 transition-colors duration-300">
+          {downloadUrl ? (
+            <>
+              <IconDownload size={14} />
+              <span className="text-xs font-medium">Baixar</span>
+            </>
+          ) : (
+            <>
+              <span className="text-xs font-medium">Acessar</span>
+              <IconExternalLink size={14} />
+            </>
+          )}
         </div>
       </div>
     </motion.a>
@@ -372,10 +430,10 @@ function DeliverablesSection({
           transition={{ duration: 0.5, ease: EASE_OUT }}
           className="text-center mb-12"
         >
-          <p className="text-xs tracking-[0.3em] text-white/30 uppercase mb-3">
-            Entregáveis
+          <p className="text-xs tracking-[0.3em] text-zinc-400 uppercase mb-3">
+            Entregaveis
           </p>
-          <p className="text-sm text-white/20">
+          <p className="text-sm text-zinc-400">
             {deliverables.length}{" "}
             {deliverables.length === 1 ? "item" : "itens"} disponíveis
           </p>
@@ -409,8 +467,15 @@ function CTASection({
   deliverables: Deliverable[];
   accentColor: string;
 }) {
-  const primaryUrl = deliverables[0]?.url;
-  if (!primaryUrl) return null;
+  // Find first downloadable or fallback to first deliverable
+  const primary = deliverables.find(
+    (d) => isDownloadable(d.type) && getDirectDownloadUrl(d.url),
+  ) ?? deliverables[0];
+  if (!primary) return null;
+
+  const directUrl = getDirectDownloadUrl(primary.url);
+  const isDownload = !!directUrl;
+  const href = directUrl ?? primary.url;
 
   return (
     <section className="py-20 sm:py-28 px-4">
@@ -421,27 +486,28 @@ function CTASection({
         transition={{ duration: 0.6, ease: EASE_OUT }}
         className="text-center max-w-lg mx-auto"
       >
-        <p className="text-2xl sm:text-3xl font-bold text-white mb-3">
+        <p className="text-2xl sm:text-3xl font-bold text-zinc-900 mb-3">
           Pronto para acessar?
         </p>
-        <p className="text-sm text-white/40 mb-10">
-          Clique abaixo para abrir todos os arquivos do projeto.
+        <p className="text-sm text-zinc-500 mb-10">
+          {isDownload
+            ? "Clique abaixo para baixar os arquivos diretamente."
+            : "Clique abaixo para abrir todos os arquivos do projeto."}
         </p>
 
         <motion.a
-          href={primaryUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={href}
+          {...(isDownload ? { download: "" } : { target: "_blank", rel: "noopener noreferrer" })}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
-          className="inline-flex items-center gap-3 px-10 py-4 rounded-full text-white font-semibold text-base transition-shadow duration-500 animate-[glow_3s_ease-in-out_infinite]"
+          className="inline-flex items-center gap-3 px-10 py-4 rounded-full text-white font-semibold text-base transition-shadow duration-500"
           style={{
             background: accentColor,
-            boxShadow: `0 0 40px ${accentColor}40`,
+            boxShadow: `0 4px 24px ${accentColor}30`,
           }}
         >
           <IconDownload size={20} />
-          Acessar Entrega
+          {isDownload ? "Baixar Entrega" : "Acessar Entrega"}
         </motion.a>
       </motion.div>
     </section>
@@ -451,15 +517,19 @@ function CTASection({
 // ── Footer ──────────────────────────────────────────────────
 function FooterSection() {
   return (
-    <footer className="border-t border-white/[0.06] py-10 px-4">
-      <div className="max-w-4xl mx-auto text-center">
-        <p className="text-xs font-bold tracking-[0.3em] text-white/20 uppercase">
-          TBO — The Branding Office
-        </p>
-        <p className="text-[11px] text-white/10 mt-2">
+    <footer className="border-t border-zinc-200 py-10 px-4">
+      <div className="max-w-4xl mx-auto flex flex-col items-center gap-3">
+        <Image
+          src="/logo-tbo.svg"
+          alt="TBO — The Branding Office"
+          width={60}
+          height={24}
+          className="h-6 w-auto opacity-30"
+        />
+        <p className="text-xs text-zinc-400">
           contato@agenciatbo.com.br
         </p>
-        <p className="text-[10px] text-white/[0.06] mt-4">
+        <p className="text-[10px] text-zinc-300 mt-1">
           Este link de entrega foi gerado pelo TBO OS.
         </p>
       </div>
@@ -480,7 +550,7 @@ export function DeliveryView({
   heroSubtitle,
   accentColor,
 }: DeliveryViewProps) {
-  // Suppress unused var warning - clientName may be used for personalization later
+  // Suppress unused var warning
   void clientName;
   void title;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -13,6 +13,8 @@ import {
   IconCalendar,
   IconAlertCircle,
   IconLoader2,
+  IconMail,
+  IconPhone,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,10 +38,21 @@ import {
 } from "@/features/comercial/services/proposal-client-link";
 import { useQuery, useMutation } from "@tanstack/react-query";
 
+import { ProposalNav } from "./components/proposal-nav";
+import { ProposalD3DFlow } from "./components/proposal-d3d-flow";
+import { ProposalWhyTBO } from "./components/proposal-why-tbo";
+import { ProposalTimeline } from "./components/proposal-timeline";
+import { ProposalPaymentOptions } from "./components/proposal-payment-options";
+import type { PaymentConditionOption } from "@/features/comercial/services/proposals";
+import { ProposalUpsell } from "./components/proposal-upsell";
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 }
 
 function formatDate(dateStr: string) {
@@ -50,6 +63,20 @@ function formatDate(dateStr: string) {
   });
 }
 
+// ─── Alias for readability ───────────────────────────────────────────────────
+
+type ExtendedProposal = ClientLinkProposal;
+
+// ─── Status mapping (DB uses Portuguese, UI uses both) ──────────────────────
+
+function isDecidedStatus(status: string) {
+  return ["approved", "rejected", "aprovada", "recusada"].includes(status);
+}
+
+function isApproved(status: string) {
+  return status === "approved" || status === "aprovada";
+}
+
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
 function ProposalSkeleton() {
@@ -58,6 +85,7 @@ function ProposalSkeleton() {
       <div className="w-full max-w-3xl">
         <div className="animate-pulse space-y-4">
           <div className="h-20 bg-zinc-200 rounded-xl" />
+          <div className="h-6 bg-zinc-200 rounded-lg w-1/2" />
           <div className="h-32 bg-zinc-200 rounded-xl" />
           <div className="h-64 bg-zinc-200 rounded-xl" />
           <div className="h-20 bg-zinc-200 rounded-xl" />
@@ -106,14 +134,194 @@ function DecidedState({ decision }: { decision: "approved" | "rejected" }) {
   );
 }
 
-// ─── Proposal view ────────────────────────────────────────────────────────────
+// ─── Section: Introduction / Context ────────────────────────────────────────
+
+function SectionIntroduction({ text }: { text: string }) {
+  return (
+    <section id="section-context" className="scroll-mt-20">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.4 }}
+        className="bg-white rounded-xl border shadow-sm p-6"
+      >
+        <h2 className="text-xl font-bold text-zinc-900 mb-3">
+          Contexto do Projeto
+        </h2>
+        <div className="text-sm text-zinc-600 leading-relaxed whitespace-pre-line">
+          {text}
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+// ─── Section: Scope items ───────────────────────────────────────────────────
+
+function SectionScope({
+  items,
+}: {
+  items: ExtendedProposal["items"];
+}) {
+  // Group items by BU
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof items>();
+    items.forEach((item) => {
+      const bu = item.bu || "Geral";
+      const existing = map.get(bu) ?? [];
+      existing.push(item);
+      map.set(bu, existing);
+    });
+    return Array.from(map.entries());
+  }, [items]);
+
+  return (
+    <section id="section-scope" className="scroll-mt-20">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.4 }}
+      >
+        <h2 className="text-xl font-bold text-zinc-900 mb-2">
+          Escopo de Serviços
+        </h2>
+        <p className="text-sm text-zinc-500 mb-6">
+          Detalhamento completo das entregas e investimento por item.
+        </p>
+
+        <div className="space-y-4">
+          {grouped.map(([bu, groupItems]) => (
+            <div
+              key={bu}
+              className="bg-white rounded-xl border shadow-sm overflow-hidden"
+            >
+              {grouped.length > 1 && (
+                <div className="px-5 py-3 border-b bg-zinc-50">
+                  <h3 className="font-semibold text-zinc-700 text-sm">{bu}</h3>
+                </div>
+              )}
+              <div className="divide-y">
+                {groupItems.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    className="px-5 py-4 flex items-start justify-between gap-4 group hover:bg-zinc-50/50 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-zinc-900 text-sm">
+                        {item.title}
+                      </p>
+                      {item.description && (
+                        <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-semibold text-zinc-900 text-sm">
+                        {formatCurrency(item.subtotal)}
+                      </p>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        {item.quantity}× {formatCurrency(item.unit_price)}
+                        {item.discount_pct > 0 && (
+                          <span className="text-red-500 ml-1">
+                            −{item.discount_pct}%
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+// ─── Section: Totals ────────────────────────────────────────────────────────
+
+function SectionTotals({ proposal }: { proposal: ExtendedProposal }) {
+  return (
+    <section id="section-investment" className="scroll-mt-20">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.4 }}
+        className="bg-white rounded-xl border shadow-sm p-6"
+      >
+        <h2 className="text-xl font-bold text-zinc-900 mb-4">Investimento</h2>
+        <div className="flex flex-col gap-2 max-w-xs ml-auto">
+          <div className="flex justify-between text-sm">
+            <span className="text-zinc-500">Subtotal</span>
+            <span className="font-medium">{formatCurrency(proposal.subtotal)}</span>
+          </div>
+          {proposal.discount_amount > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-zinc-500">Desconto</span>
+              <span className="text-red-500 font-medium">
+                − {formatCurrency(proposal.discount_amount)}
+              </span>
+            </div>
+          )}
+          {proposal.urgency_flag && (
+            <div className="flex justify-between text-sm">
+              <span className="text-amber-600 font-medium">
+                ⚡ Urgência aplicada
+              </span>
+            </div>
+          )}
+          <Separator className="my-1" />
+          <div className="flex justify-between items-center">
+            <span className="font-bold text-zinc-900">Valor Total</span>
+            <span className="font-bold text-[#E85102] text-2xl">
+              {formatCurrency(proposal.value)}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+// ─── Section: Notes / Observações ───────────────────────────────────────────
+
+function SectionNotes({ notes }: { notes: string }) {
+  return (
+    <section id="section-notes" className="scroll-mt-20">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.4 }}
+        className="bg-white rounded-xl border shadow-sm p-6"
+      >
+        <h2 className="text-xl font-bold text-zinc-900 mb-3">
+          Observações e Garantias
+        </h2>
+        <p className="text-sm text-zinc-600 whitespace-pre-line leading-relaxed">
+          {notes}
+        </p>
+      </motion.div>
+    </section>
+  );
+}
+
+// ─── Main Proposal View ─────────────────────────────────────────────────────
 
 function ProposalView({
   proposal,
   onDecide,
   isSubmitting,
 }: {
-  proposal: ClientLinkProposal;
+  proposal: ExtendedProposal;
   onDecide: (decision: "approved" | "rejected", feedback: string) => void;
   isSubmitting: boolean;
 }) {
@@ -121,44 +329,93 @@ function ProposalView({
   const [rejectOpen, setRejectOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
 
-  const isDecided = ["approved", "rejected"].includes(proposal.status);
+  const isDecided = isDecidedStatus(proposal.status);
+  const showD3D = proposal.show_d3d_flow ?? false;
+  const paymentOptions: PaymentConditionOption[] = Array.isArray(
+    proposal.payment_conditions,
+  )
+    ? proposal.payment_conditions
+    : [];
+
+  // Build nav items based on content
+  const navItems = useMemo(() => {
+    const items: { id: string; label: string }[] = [];
+    items.push({ id: "section-header", label: "Proposta" });
+    if (proposal.introduction) {
+      items.push({ id: "section-context", label: "Contexto" });
+    }
+    if (showD3D) {
+      items.push({ id: "section-d3d", label: "Processo D3D" });
+    }
+    items.push({ id: "section-scope", label: "Escopo" });
+    items.push({ id: "section-investment", label: "Investimento" });
+    if (paymentOptions.length > 0) {
+      items.push({ id: "section-payment", label: "Pagamento" });
+    }
+    if (showD3D) {
+      items.push({ id: "section-why", label: "Por que TBO" });
+      items.push({ id: "section-timeline", label: "Timeline" });
+      items.push({ id: "section-upsell", label: "Pacote" });
+    }
+    if (proposal.notes) {
+      items.push({ id: "section-notes", label: "Observações" });
+    }
+    items.push({ id: "section-decision", label: "Decisão" });
+    return items;
+  }, [proposal, showD3D, paymentOptions.length]);
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* TBO Header bar */}
-      <div className="bg-[#18181B] text-white px-6 py-4 flex items-center justify-between">
-        <div>
-          <p className="text-lg font-bold tracking-wide">TBO</p>
-          <p className="text-xs text-zinc-400 tracking-widest uppercase">The Branding Office</p>
-        </div>
-        {proposal.ref_code && (
-          <div className="text-right">
-            <p className="text-xs text-zinc-400 uppercase tracking-wider">Referência</p>
-            <p className="text-[#E85102] font-bold font-mono">{proposal.ref_code}</p>
+      {/* ── TBO Header bar ── */}
+      <div className="bg-[#18181B] text-white">
+        <div className="max-w-3xl mx-auto px-4 py-5 flex items-center justify-between">
+          <div>
+            <p className="text-xl font-bold tracking-wide">TBO</p>
+            <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase">
+              Think. Build. Own.
+            </p>
           </div>
-        )}
+          <div className="text-right">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-0.5">
+              Proposta Comercial
+            </p>
+            {proposal.ref_code && (
+              <p className="text-[#E85102] font-bold font-mono text-sm">
+                {proposal.ref_code}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      {/* ── Sticky nav ── */}
+      <ProposalNav items={navItems} />
+
+      {/* ── Content ── */}
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         {/* Decided banner */}
         {isDecided && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             className={`rounded-xl p-4 flex items-center gap-3 ${
-              proposal.status === "approved"
+              isApproved(proposal.status)
                 ? "bg-emerald-50 border border-emerald-200"
                 : "bg-red-50 border border-red-200"
             }`}
           >
-            {proposal.status === "approved" ? (
+            {isApproved(proposal.status) ? (
               <IconThumbUp size={20} className="text-emerald-600 shrink-0" />
             ) : (
               <IconThumbDown size={20} className="text-red-500 shrink-0" />
             )}
             <div>
-              <p className={`font-semibold ${proposal.status === "approved" ? "text-emerald-700" : "text-red-600"}`}>
-                {proposal.status === "approved" ? "Proposta aprovada" : "Proposta recusada"}
+              <p
+                className={`font-semibold ${isApproved(proposal.status) ? "text-emerald-700" : "text-red-600"}`}
+              >
+                {isApproved(proposal.status)
+                  ? "Proposta aprovada"
+                  : "Proposta recusada"}
               </p>
               {proposal.client_decided_at && (
                 <p className="text-xs text-zinc-400 mt-0.5">
@@ -169,214 +426,200 @@ function ProposalView({
           </motion.div>
         )}
 
-        {/* Proposal header */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="bg-white rounded-xl border p-6 shadow-sm"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-bold text-zinc-900">{proposal.name}</h1>
-              <div className="flex flex-wrap items-center gap-3 mt-2">
-                {proposal.company && (
-                  <span className="flex items-center gap-1 text-sm text-zinc-500">
-                    <IconBriefcase size={14} />
-                    {proposal.company}
-                  </span>
-                )}
+        {/* ── Header section ── */}
+        <section id="section-header" className="scroll-mt-20">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-xl border shadow-sm overflow-hidden"
+          >
+            {/* Project banner */}
+            <div className="bg-gradient-to-r from-[#18181B] to-[#27272A] px-6 py-5">
+              <h1 className="text-xl font-bold text-white mb-1">
+                {proposal.name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-3">
                 {proposal.project_type && (
-                  <span className="flex items-center gap-1 text-sm text-zinc-500">
-                    <IconFileText size={14} />
+                  <span className="flex items-center gap-1 text-xs text-zinc-400">
+                    <IconFileText size={12} />
                     {proposal.project_type}
                   </span>
                 )}
                 {proposal.project_location && (
-                  <span className="flex items-center gap-1 text-sm text-zinc-500">
-                    <IconMapPin size={14} />
+                  <span className="flex items-center gap-1 text-xs text-zinc-400">
+                    <IconMapPin size={12} />
                     {proposal.project_location}
+                  </span>
+                )}
+                {proposal.company && (
+                  <span className="flex items-center gap-1 text-xs text-zinc-400">
+                    <IconBriefcase size={12} />
+                    {proposal.company}
                   </span>
                 )}
               </div>
             </div>
-            <div className="text-right shrink-0">
-              <p className="text-xs text-zinc-400 mb-1">
-                <IconCalendar size={12} className="inline mr-1" />
-                Emitida em {formatDate(proposal.created_at)}
-              </p>
-              {proposal.valid_days > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  Válida por {proposal.valid_days} dias
-                </Badge>
-              )}
-            </div>
-          </div>
 
-          {/* Contact info */}
-          {(proposal.contact_name || proposal.contact_email || proposal.contact_phone) && (
-            <div className="mt-4 pt-4 border-t flex flex-wrap gap-4">
-              {proposal.contact_name && (
-                <span className="flex items-center gap-1.5 text-sm text-zinc-600">
-                  <IconUser size={14} className="text-zinc-400" />
-                  {proposal.contact_name}
+            {/* Meta info */}
+            <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap gap-4">
+                {proposal.contact_name && (
+                  <span className="flex items-center gap-1.5 text-sm text-zinc-600">
+                    <IconUser size={14} className="text-zinc-400" />
+                    {proposal.contact_name}
+                  </span>
+                )}
+                {proposal.contact_email && (
+                  <a
+                    href={`mailto:${proposal.contact_email}`}
+                    className="flex items-center gap-1.5 text-sm text-[#E85102] hover:underline"
+                  >
+                    <IconMail size={14} />
+                    {proposal.contact_email}
+                  </a>
+                )}
+                {proposal.contact_phone && (
+                  <span className="flex items-center gap-1.5 text-sm text-zinc-600">
+                    <IconPhone size={14} className="text-zinc-400" />
+                    {proposal.contact_phone}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-zinc-400">
+                  <IconCalendar size={12} className="inline mr-1" />
+                  {formatDate(proposal.created_at)}
                 </span>
-              )}
-              {proposal.contact_email && (
-                <a
-                  href={`mailto:${proposal.contact_email}`}
-                  className="text-sm text-[#E85102] hover:underline"
+                {proposal.valid_days > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    Válida por {proposal.valid_days} dias
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* ── Introduction / Context ── */}
+        {proposal.introduction && (
+          <SectionIntroduction text={proposal.introduction} />
+        )}
+
+        {/* ── D3D Flow ── */}
+        {showD3D && <ProposalD3DFlow />}
+
+        {/* ── Scope ── */}
+        <SectionScope items={proposal.items} />
+
+        {/* ── Totals ── */}
+        <SectionTotals proposal={proposal} />
+
+        {/* ── Payment conditions ── */}
+        {paymentOptions.length > 0 && (
+          <ProposalPaymentOptions
+            options={paymentOptions}
+            totalValue={proposal.value}
+          />
+        )}
+
+        {/* ── Why TBO ── */}
+        {showD3D && <ProposalWhyTBO />}
+
+        {/* ── Timeline ── */}
+        {showD3D && <ProposalTimeline />}
+
+        {/* ── Upsell ── */}
+        {showD3D && <ProposalUpsell />}
+
+        {/* ── Notes ── */}
+        {proposal.notes && <SectionNotes notes={proposal.notes} />}
+
+        {/* ── Decision section ── */}
+        <section id="section-decision" className="scroll-mt-20">
+          {!isDecided && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3 }}
+              className="bg-white rounded-xl border shadow-sm p-6"
+            >
+              <h2 className="text-xl font-bold text-zinc-900 mb-1">
+                Próximos Passos
+              </h2>
+              <div className="space-y-3 mb-5">
+                {[
+                  "Confirme esta proposta clicando em Aprovar",
+                  "Receba o boleto de entrada e cronograma detalhado em 48h",
+                  "Kickoff com briefing estratégico na semana seguinte",
+                ].map((step, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#E85102]/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[#E85102] text-xs font-bold">
+                        {idx + 1}
+                      </span>
+                    </div>
+                    <p className="text-sm text-zinc-600">{step}</p>
+                  </div>
+                ))}
+              </div>
+
+              <Separator className="mb-5" />
+
+              <p className="text-sm text-zinc-500 mb-4">
+                Revise a proposta e indique sua decisão.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white h-11"
+                  onClick={() => setApproveOpen(true)}
+                  disabled={isSubmitting}
                 >
-                  {proposal.contact_email}
-                </a>
-              )}
-              {proposal.contact_phone && (
-                <span className="text-sm text-zinc-600">{proposal.contact_phone}</span>
-              )}
+                  {isSubmitting ? (
+                    <IconLoader2 size={16} className="animate-spin" />
+                  ) : (
+                    <IconThumbUp size={16} />
+                  )}
+                  Aprovar proposta
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2 border-red-200 text-red-600 hover:bg-red-50 h-11"
+                  onClick={() => setRejectOpen(true)}
+                  disabled={isSubmitting}
+                >
+                  <IconThumbDown size={16} />
+                  Recusar
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Client feedback (if already decided) */}
+          {isDecided && proposal.client_feedback && (
+            <div className="bg-zinc-50 rounded-xl border p-4">
+              <p className="text-xs font-medium text-zinc-400 mb-1 uppercase tracking-wide">
+                Seu feedback
+              </p>
+              <p className="text-sm text-zinc-700">{proposal.client_feedback}</p>
             </div>
           )}
-        </motion.div>
+        </section>
 
-        {/* Items */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: 0.05 }}
-          className="bg-white rounded-xl border shadow-sm overflow-hidden"
-        >
-          <div className="px-6 py-4 border-b bg-zinc-50">
-            <h2 className="font-semibold text-zinc-900">Escopo de Serviços</h2>
-          </div>
-          <div className="divide-y">
-            {proposal.items.map((item) => (
-              <div key={item.id} className="px-6 py-4 flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-zinc-900">{item.title}</p>
-                  {item.description && (
-                    <p className="text-sm text-zinc-500 mt-0.5">{item.description}</p>
-                  )}
-                  {item.bu && (
-                    <Badge variant="outline" className="text-xs mt-1.5">
-                      {item.bu}
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-semibold text-zinc-900">{formatCurrency(item.subtotal)}</p>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    {item.quantity}× {formatCurrency(item.unit_price)}
-                    {item.discount_pct > 0 && ` − ${item.discount_pct}%`}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Totals */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: 0.1 }}
-          className="bg-white rounded-xl border shadow-sm p-6"
-        >
-          <div className="flex flex-col gap-2 max-w-xs ml-auto">
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-500">Subtotal</span>
-              <span className="font-medium">{formatCurrency(proposal.subtotal)}</span>
-            </div>
-            {proposal.discount_amount > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">Desconto</span>
-                <span className="text-red-500 font-medium">
-                  − {formatCurrency(proposal.discount_amount)}
-                </span>
-              </div>
-            )}
-            {proposal.urgency_flag && (
-              <div className="flex justify-between text-sm">
-                <span className="text-amber-600 font-medium">⚡ Urgência aplicada</span>
-              </div>
-            )}
-            <Separator className="my-1" />
-            <div className="flex justify-between">
-              <span className="font-bold text-zinc-900">Valor Total</span>
-              <span className="font-bold text-[#E85102] text-lg">{formatCurrency(proposal.value)}</span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Notes */}
-        {proposal.notes && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, delay: 0.15 }}
-            className="bg-white rounded-xl border shadow-sm p-6"
-          >
-            <h3 className="font-semibold text-zinc-900 mb-2">Observações</h3>
-            <p className="text-sm text-zinc-600 whitespace-pre-line">{proposal.notes}</p>
-          </motion.div>
-        )}
-
-        {/* Decision actions */}
-        {!isDecided && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, delay: 0.2 }}
-            className="bg-white rounded-xl border shadow-sm p-6"
-          >
-            <h3 className="font-semibold text-zinc-900 mb-1">Sua decisão</h3>
-            <p className="text-sm text-zinc-500 mb-4">
-              Revise a proposta acima e indique sua decisão.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => setApproveOpen(true)}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <IconLoader2 size={16} className="animate-spin" />
-                ) : (
-                  <IconThumbUp size={16} />
-                )}
-                Aprovar proposta
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 gap-2 border-red-200 text-red-600 hover:bg-red-50"
-                onClick={() => setRejectOpen(true)}
-                disabled={isSubmitting}
-              >
-                <IconThumbDown size={16} />
-                Recusar
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Client feedback (if already decided) */}
-        {isDecided && proposal.client_feedback && (
-          <div className="bg-zinc-50 rounded-xl border p-4">
-            <p className="text-xs font-medium text-zinc-400 mb-1 uppercase tracking-wide">Seu feedback</p>
-            <p className="text-sm text-zinc-700">{proposal.client_feedback}</p>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="text-center py-4">
-          <p className="text-xs text-zinc-400">
-            TBO — The Branding Office · contato@agenciatbo.com.br
+        {/* ── Footer ── */}
+        <div className="text-center py-6 space-y-1">
+          <p className="text-xs font-medium text-zinc-500">
+            TBO — The Branding Office
           </p>
-          <p className="text-xs text-zinc-300 mt-1">
-            Esta proposta foi gerada pelo TBO OS e é válida por {proposal.valid_days} dias.
+          <p className="text-xs text-zinc-400">contato@agenciatbo.com.br</p>
+          <p className="text-[10px] text-zinc-300 mt-2">
+            Proposta gerada pelo TBO OS · Válida por {proposal.valid_days} dias
           </p>
         </div>
       </div>
 
-      {/* Approve dialog */}
+      {/* ── Approve dialog ── */}
       <AlertDialog open={approveOpen} onOpenChange={setApproveOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -385,7 +628,8 @@ function ProposalView({
               Aprovar proposta?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Ao aprovar, nossa equipe será notificada e entrará em contato para dar início ao projeto.
+              Ao aprovar, nossa equipe será notificada e entrará em contato para
+              dar início ao projeto.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
@@ -396,7 +640,9 @@ function ProposalView({
             className="mt-2"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setFeedback("")}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setFeedback("")}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-emerald-600 hover:bg-emerald-700"
               onClick={() => {
@@ -410,7 +656,7 @@ function ProposalView({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reject dialog */}
+      {/* ── Reject dialog ── */}
       <AlertDialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -419,7 +665,8 @@ function ProposalView({
               Recusar proposta?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Podemos renegociar os termos se necessário. Deixe um comentário explicando sua decisão.
+              Podemos renegociar os termos se necessário. Deixe um comentário
+              explicando sua decisão.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
@@ -430,7 +677,9 @@ function ProposalView({
             className="mt-2"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setFeedback("")}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setFeedback("")}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               onClick={() => {
@@ -453,9 +702,15 @@ export default function ProposalPublicPage() {
   const params = useParams();
   const token = params.token as string;
 
-  const [decidedStatus, setDecidedStatus] = useState<"approved" | "rejected" | null>(null);
+  const [decidedStatus, setDecidedStatus] = useState<
+    "approved" | "rejected" | null
+  >(null);
 
-  const { data: proposal, isLoading, error } = useQuery({
+  const {
+    data: proposal,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["proposal-by-token-public", token],
     queryFn: async () => {
       const supabase = createClient();
@@ -489,9 +744,12 @@ export default function ProposalPublicPage() {
       <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
         <div className="text-center max-w-sm">
           <IconAlertCircle size={40} className="text-zinc-300 mx-auto mb-3" />
-          <h2 className="text-lg font-bold text-zinc-900 mb-1">Link inválido</h2>
+          <h2 className="text-lg font-bold text-zinc-900 mb-1">
+            Link inválido
+          </h2>
           <p className="text-zinc-500 text-sm">
-            Esta proposta não foi encontrada ou o link expirou. Entre em contato com a TBO.
+            Esta proposta não foi encontrada ou o link expirou. Entre em contato
+            com a TBO.
           </p>
           <p className="mt-4 text-xs text-zinc-400">contato@agenciatbo.com.br</p>
         </div>
@@ -505,8 +763,10 @@ export default function ProposalPublicPage() {
 
   return (
     <ProposalView
-      proposal={proposal}
-      onDecide={(decision, feedback) => decideMutation.mutate({ decision, feedback })}
+      proposal={proposal as ExtendedProposal}
+      onDecide={(decision, feedback) =>
+        decideMutation.mutate({ decision, feedback })
+      }
       isSubmitting={decideMutation.isPending}
     />
   );

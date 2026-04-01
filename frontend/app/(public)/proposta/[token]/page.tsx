@@ -127,7 +127,7 @@ function DecidedState({ decision }: { decision: "approved" | "rejected" }) {
         </p>
         <div className="mt-6 text-xs text-zinc-400 space-y-1">
           <p className="font-semibold text-zinc-600">TBO | Lançamentos Imobiliários</p>
-          <p>contato@agenciatbo.com.br · +55 41 9610-1504</p>
+          <p>contato@agenciatbo.com.br · +55 41 9669-6918</p>
           <a
             href="https://wearetbo.com.br"
             target="_blank"
@@ -685,12 +685,12 @@ function ProposalView({
             </a>
             <span className="text-zinc-300">·</span>
             <a
-              href="https://wa.me/554196101504"
+              href="https://wa.me/554196696918"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-[#E85102] transition-colors"
             >
-              +55 41 9610-1504
+              +55 41 9669-6918
             </a>
             <span className="text-zinc-300">·</span>
             <a

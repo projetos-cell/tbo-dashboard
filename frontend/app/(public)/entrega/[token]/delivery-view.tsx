@@ -306,6 +306,7 @@ function HeroSection({
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
   const bgY = useTransform(scrollYProgress, [0, 1], [0, 80]);
 
+  const hasCover = !!coverImageUrl;
   const letters = (projectName ?? "Projeto").split("");
 
   return (
@@ -323,7 +324,7 @@ function HeroSection({
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-white/40" />
+          <div className="absolute inset-0 bg-zinc-900/50" />
         </motion.div>
       ) : (
         <div className="absolute inset-0 z-0">
@@ -356,7 +357,7 @@ function HeroSection({
         >
           <a href="https://wearetbo.com.br" target="_blank" rel="noopener noreferrer">
             <Image
-              src="/logo-tbo.svg"
+              src={hasCover ? "/logo-tbo-dark.svg" : "/logo-tbo.svg"}
               alt="TBO | Lançamentos Imobiliários"
               width={120}
               height={48}
@@ -364,7 +365,7 @@ function HeroSection({
               priority
             />
           </a>
-          <p className="text-[10px] tracking-[0.25em] text-zinc-400 uppercase mt-2">
+          <p className={`text-[10px] tracking-[0.25em] uppercase mt-2 ${hasCover ? "text-white/50" : "text-zinc-400"}`}>
             think, build, own
           </p>
         </motion.div>
@@ -381,7 +382,7 @@ function HeroSection({
                 delay: 0.5 + i * 0.035,
                 ease: EASE_OUT,
               }}
-              className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-tight text-zinc-900"
+              className={`text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-tight ${hasCover ? "text-white" : "text-zinc-900"}`}
               style={{ display: "inline-block", whiteSpace: "pre" }}
             >
               {letter === " " ? "\u00A0" : letter}
@@ -394,7 +395,7 @@ function HeroSection({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.9, ease: EASE_OUT }}
-          className="text-lg sm:text-xl text-zinc-400 mt-6 font-light tracking-wide"
+          className={`text-lg sm:text-xl mt-6 font-light tracking-wide ${hasCover ? "text-white/60" : "text-zinc-400"}`}
         >
           {clientCompany ?? ""}
         </motion.p>
@@ -405,7 +406,7 @@ function HeroSection({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, delay: 1.1, ease: EASE_OUT }}
-            className="text-sm text-zinc-400 mt-3 tracking-widest uppercase"
+            className={`text-sm mt-3 tracking-widest uppercase ${hasCover ? "text-white/40" : "text-zinc-400"}`}
           >
             {heroSubtitle}
           </motion.p>
@@ -431,7 +432,7 @@ function HeroSection({
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
-            <IconChevronDown size={24} className="text-zinc-300" />
+            <IconChevronDown size={24} className={hasCover ? "text-white/30" : "text-zinc-300"} />
           </motion.div>
         </motion.div>
       </motion.div>

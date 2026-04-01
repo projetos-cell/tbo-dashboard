@@ -17,15 +17,11 @@ import {
   IconVideo,
   IconExternalLink,
   IconFileZip,
-  IconChevronDown,
   IconDownload,
-  IconCalendar,
-  IconBuilding,
-  IconUser,
   IconLock,
-  IconQuote,
+  IconArrowDown,
+  IconArrowRight,
 } from "@tabler/icons-react";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -70,16 +66,6 @@ const TYPE_ICONS: Record<string, typeof IconFolder> = {
   zip: IconFileZip,
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  folder: "Pasta",
-  pdf: "PDF",
-  dwg: "DWG",
-  image: "Imagem",
-  video: "Vídeo",
-  link: "Link",
-  zip: "ZIP",
-};
-
 function formatDate(dateStr: string) {
   return new Date(dateStr + "T12:00:00").toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -107,28 +93,23 @@ function isDownloadable(type: string): boolean {
 // ── Stagger Variants ────────────────────────────────────────
 const staggerContainer: Variants = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.12 },
-  },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
 const staggerItem: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: EASE_OUT },
-  },
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE_OUT } },
 };
 
 // ── Password Screen ────────────────────────────────────────
 function PasswordScreen({
   accessPassword,
   onUnlock,
+  coverImageUrl,
 }: {
   accessPassword: string;
   onUnlock: () => void;
+  coverImageUrl: string | null;
 }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
@@ -146,29 +127,39 @@ function PasswordScreen({
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      {/* Background */}
+      {coverImageUrl ? (
+        <div className="absolute inset-0 z-0">
+          <Image src={coverImageUrl} alt="" fill className="object-cover" priority />
+          <div className="absolute inset-0 bg-zinc-900/70 backdrop-blur-sm" />
+        </div>
+      ) : (
+        <div className="absolute inset-0 z-0 bg-zinc-900" />
+      )}
+
       <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, ease: EASE_OUT }}
-        className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-8 sm:p-10 text-center max-w-sm w-full"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: EASE_OUT }}
+        className="relative z-10 text-center max-w-sm w-full"
       >
         <Image
-          src="/logo-tbo.svg"
+          src="/logo-tbo-dark.svg"
           alt="TBO"
           width={80}
           height={32}
-          className="h-7 w-auto mx-auto opacity-50 mb-8"
+          className="h-7 w-auto mx-auto opacity-60 mb-10"
         />
 
-        <div className="w-14 h-14 rounded-full bg-zinc-100 flex items-center justify-center mx-auto mb-5">
-          <IconLock size={24} className="text-zinc-400" />
+        <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-6">
+          <IconLock size={20} className="text-white/50" />
         </div>
 
-        <h2 className="text-lg font-bold text-zinc-900 mb-1">
+        <h2 className="text-lg font-semibold text-white mb-1">
           Entrega protegida
         </h2>
-        <p className="text-sm text-zinc-500 mb-6">
+        <p className="text-sm text-white/40 mb-8">
           Digite a senha de acesso fornecida pela TBO.
         </p>
 
@@ -177,31 +168,25 @@ function PasswordScreen({
             type="password"
             placeholder="Senha de acesso"
             value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setError(false);
-            }}
-            className={`text-center h-11 ${error ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+            onChange={(e) => { setPassword(e.target.value); setError(false); }}
+            className={`text-center h-12 bg-white/10 border-white/20 text-white placeholder:text-white/30 focus-visible:ring-white/30 ${error ? "border-red-400" : ""}`}
             autoFocus
           />
           {error && (
             <motion.p
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-xs text-red-500"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-xs text-red-400"
             >
               Senha incorreta. Tente novamente.
             </motion.p>
           )}
-          <Button
-            type="submit"
-            className="w-full h-11 bg-[#18181B] hover:bg-zinc-800 text-white"
-          >
+          <Button type="submit" className="w-full h-12 bg-white text-zinc-900 hover:bg-white/90 font-semibold">
             Acessar entrega
           </Button>
         </form>
 
-        <p className="text-[10px] text-zinc-400 mt-8">
+        <p className="text-[10px] text-white/20 mt-10">
           TBO | Lançamentos Imobiliários
         </p>
       </motion.div>
@@ -209,7 +194,7 @@ function PasswordScreen({
   );
 }
 
-// ── Reveal Animation (first access) ───────────────────────
+// ── Reveal Animation ───────────────────────────────────────
 function RevealAnimation({
   projectName,
   onComplete,
@@ -223,15 +208,12 @@ function RevealAnimation({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Top curtain */}
       <motion.div
         className="absolute top-0 left-0 right-0 h-1/2 bg-zinc-900 z-50"
         initial={{ y: 0 }}
         animate={{ y: "-100%" }}
         transition={{ duration: 0.8, delay: 2.2, ease: CURTAIN_EASE }}
       />
-
-      {/* Bottom curtain */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 h-1/2 bg-zinc-900 z-50"
         initial={{ y: 0 }}
@@ -239,8 +221,6 @@ function RevealAnimation({
         transition={{ duration: 0.8, delay: 2.2, ease: CURTAIN_EASE }}
         onAnimationComplete={onComplete}
       />
-
-      {/* Center content */}
       <div className="absolute inset-0 z-[51] flex flex-col items-center justify-center bg-zinc-900">
         <motion.div
           initial={{ opacity: 0 }}
@@ -248,18 +228,12 @@ function RevealAnimation({
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col items-center"
         >
-          <Image
-            src="/logo-tbo-dark.svg"
-            alt="TBO"
-            width={100}
-            height={40}
-            className="h-8 w-auto opacity-60 mb-6"
-          />
+          <Image src="/logo-tbo-dark.svg" alt="TBO" width={100} height={40} className="h-8 w-auto opacity-60 mb-6" />
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.8 }}
-            className="text-white text-2xl sm:text-3xl font-bold tracking-tight"
+            className="text-white text-2xl sm:text-4xl font-bold tracking-tight"
           >
             {projectName ?? "Seu projeto"}
           </motion.p>
@@ -283,156 +257,112 @@ function RevealAnimation({
   );
 }
 
-// ── Hero Section ────────────────────────────────────────────
+// ── Hero ────────────────────────────────────────────────────
 function HeroSection({
   projectName,
   clientCompany,
   heroSubtitle,
   accentColor,
   coverImageUrl,
+  deliveryDate,
 }: {
   projectName: string | null;
   clientCompany: string | null;
   heroSubtitle: string | null;
   accentColor: string;
   coverImageUrl: string | null;
+  deliveryDate: string | null;
 }) {
   const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const contentY = useTransform(scrollYProgress, [0, 1], [0, -120]);
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], [0, 80]);
-
-  const hasCover = !!coverImageUrl;
-  const letters = (projectName ?? "Projeto").split("");
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
   return (
-    <section
-      ref={heroRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white"
-    >
-      {/* Background: cover image with parallax OR gradient orbs */}
+    <section ref={heroRef} className="relative h-screen flex flex-col justify-end overflow-hidden">
+      {/* Background */}
       {coverImageUrl ? (
         <motion.div className="absolute inset-0 z-0" style={{ y: bgY }}>
-          <Image
-            src={coverImageUrl}
-            alt=""
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-zinc-900/50" />
+          <Image src={coverImageUrl} alt="" fill className="object-cover" priority />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
         </motion.div>
       ) : (
-        <div className="absolute inset-0 z-0">
-          <div
-            className="absolute w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[140px] animate-[drift1_20s_ease-in-out_infinite]"
-            style={{ background: accentColor, top: "10%", right: "10%" }}
-          />
-          <div
-            className="absolute w-[400px] h-[400px] rounded-full opacity-[0.05] blur-[120px] animate-[drift2_25s_ease-in-out_infinite]"
-            style={{ background: "#e0dcd8", bottom: "10%", left: "5%" }}
-          />
-          <div
-            className="absolute w-[300px] h-[300px] rounded-full opacity-[0.06] blur-[100px] animate-[drift3_18s_ease-in-out_infinite]"
-            style={{ background: accentColor, top: "40%", left: "40%" }}
-          />
-        </div>
+        <div className="absolute inset-0 z-0 bg-zinc-900" />
       )}
 
-      {/* Content */}
+      {/* Top bar — logo */}
       <motion.div
-        style={{ y: contentY, opacity }}
-        className="relative z-10 text-center px-4 max-w-4xl mx-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="absolute top-0 left-0 right-0 z-20 p-6 sm:p-8 flex items-center justify-between"
       >
-        {/* TBO Logo */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2, ease: EASE_OUT }}
-          className="mb-12 flex flex-col items-center"
-        >
-          <a href="https://wearetbo.com.br" target="_blank" rel="noopener noreferrer">
-            <Image
-              src={hasCover ? "/logo-tbo-dark.svg" : "/logo-tbo.svg"}
-              alt="TBO | Lançamentos Imobiliários"
-              width={120}
-              height={48}
-              className="h-10 w-auto opacity-60 hover:opacity-80 transition-opacity"
-              priority
-            />
-          </a>
-          <p className={`text-[10px] tracking-[0.25em] uppercase mt-2 ${hasCover ? "text-white/50" : "text-zinc-400"}`}>
-            think, build, own
-          </p>
-        </motion.div>
+        <a href="https://wearetbo.com.br" target="_blank" rel="noopener noreferrer">
+          <Image
+            src="/logo-tbo-dark.svg"
+            alt="TBO | Lançamentos Imobiliários"
+            width={100}
+            height={40}
+            className="h-7 sm:h-8 w-auto opacity-70 hover:opacity-100 transition-opacity"
+            priority
+          />
+        </a>
+        {deliveryDate && (
+          <span className="text-[11px] text-white/40 tracking-wider uppercase hidden sm:block">
+            Versão Final &middot; {formatDate(deliveryDate)}
+          </span>
+        )}
+      </motion.div>
 
-        {/* Project name — letter stagger */}
-        <div className="flex flex-wrap justify-center gap-0" aria-label={projectName ?? "Projeto"}>
-          {letters.map((letter, i) => (
-            <motion.span
-              key={`${letter}-${i}`}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.4,
-                delay: 0.5 + i * 0.035,
-                ease: EASE_OUT,
-              }}
-              className={`text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-tight ${hasCover ? "text-white" : "text-zinc-900"}`}
-              style={{ display: "inline-block", whiteSpace: "pre" }}
-            >
-              {letter === " " ? "\u00A0" : letter}
-            </motion.span>
-          ))}
-        </div>
-
-        {/* Client */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.9, ease: EASE_OUT }}
-          className={`text-lg sm:text-xl mt-6 font-light tracking-wide ${hasCover ? "text-white/60" : "text-zinc-400"}`}
-        >
-          {clientCompany ?? ""}
-        </motion.p>
-
-        {/* Subtitle */}
+      {/* Bottom content */}
+      <motion.div
+        style={{ opacity: contentOpacity }}
+        className="relative z-10 px-6 sm:px-10 pb-16 sm:pb-20 max-w-5xl"
+      >
         {heroSubtitle && (
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 1.1, ease: EASE_OUT }}
-            className={`text-sm mt-3 tracking-widest uppercase ${hasCover ? "text-white/40" : "text-zinc-400"}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+            className="text-xs sm:text-sm text-white/40 tracking-widest uppercase mb-4"
           >
             {heroSubtitle}
           </motion.p>
         )}
 
-        {/* Accent divider */}
-        <motion.div
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 0.6, delay: 1.3, ease: EASE_OUT }}
-          className="w-24 h-[2px] mx-auto mt-8 origin-center"
-          style={{ background: accentColor }}
-        />
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="text-5xl sm:text-7xl md:text-8xl font-bold text-white tracking-tight leading-[0.9]"
+        >
+          {projectName ?? "Projeto"}
+        </motion.h1>
 
-        {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.8, duration: 0.4 }}
-          className="absolute bottom-12 left-1/2 -translate-x-1/2"
+          transition={{ duration: 0.4, delay: 0.8 }}
+          className="flex items-center gap-4 mt-6"
+        >
+          {clientCompany && (
+            <span className="text-sm sm:text-base text-white/50 font-light">{clientCompany}</span>
+          )}
+          <div className="w-8 h-[1px]" style={{ background: accentColor }} />
+        </motion.div>
+
+        {/* Scroll hint */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5, duration: 0.4 }}
+          className="mt-12"
         >
           <motion.div
-            animate={{ y: [0, 8, 0] }}
+            animate={{ y: [0, 6, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
-            <IconChevronDown size={24} className={hasCover ? "text-white/30" : "text-zinc-300"} />
+            <IconArrowDown size={18} className="text-white/20" />
           </motion.div>
         </motion.div>
       </motion.div>
@@ -440,132 +370,108 @@ function HeroSection({
   );
 }
 
-// ── Context Section ──────────────────────────────────────────
-function ContextSection({
+// ── Content Body ────────────────────────────────────────────
+function ContentBody({
   description,
   deliveryDate,
-  clientCompany,
   deliveredBy,
+  personalMessage,
+  deliverables,
   accentColor,
 }: {
   description: string | null;
   deliveryDate: string | null;
-  clientCompany: string | null;
   deliveredBy: string | null;
+  personalMessage: string | null;
+  deliverables: Deliverable[];
   accentColor: string;
 }) {
   return (
-    <section className="py-20 sm:py-28 px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: EASE_OUT }}
-        className="max-w-2xl mx-auto text-center"
-      >
-        {/* Version/Date Badge */}
-        {deliveryDate && (
-          <div className="flex justify-center mb-6">
-            <Badge
-              className="text-xs font-medium tracking-wide px-4 py-1.5 rounded-full border-0"
-              style={{
-                backgroundColor: `${accentColor}15`,
-                color: accentColor,
-              }}
-            >
-              Versão Final &middot; {formatDate(deliveryDate)}
-            </Badge>
-          </div>
-        )}
-
-        <p className="text-xs tracking-[0.3em] text-zinc-400 uppercase mb-6">
-          Sobre esta entrega
-        </p>
-
-        {description && (
-          <p className="text-lg sm:text-xl text-zinc-600 leading-relaxed font-light">
-            {description}
-          </p>
-        )}
-
-        {/* Metadata */}
-        <div className="flex flex-wrap justify-center gap-6 mt-10">
-          {clientCompany && (
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
-              <IconBuilding size={16} />
-              <span>{clientCompany}</span>
-            </div>
+    <section className="relative bg-white">
+      <div className="max-w-3xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
+        {/* Intro */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease: EASE_OUT }}
+        >
+          {deliveryDate && (
+            <p className="text-xs tracking-widest uppercase mb-8" style={{ color: accentColor }}>
+              Entrega final &middot; {formatDate(deliveryDate)}
+            </p>
           )}
+
+          {description && (
+            <p className="text-xl sm:text-2xl text-zinc-700 leading-relaxed font-light">
+              {description}
+            </p>
+          )}
+
           {deliveredBy && (
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
-              <IconUser size={16} />
-              <span>{deliveredBy}</span>
-            </div>
+            <p className="text-sm text-zinc-400 mt-4">
+              Entregue por {deliveredBy}
+            </p>
           )}
-        </div>
-      </motion.div>
-    </section>
-  );
-}
 
-// ── Personal Message Section ────────────────────────────────
-function PersonalMessageSection({
-  message,
-  author,
-  accentColor,
-}: {
-  message: string;
-  author: string | null;
-  accentColor: string;
-}) {
-  return (
-    <section className="py-8 sm:py-12 px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: EASE_OUT }}
-        className="max-w-2xl mx-auto"
-      >
-        <div className="relative bg-white rounded-2xl border border-zinc-200 p-8 sm:p-10">
-          {/* Decorative quote */}
-          <div className="absolute -top-4 left-8">
-            <IconQuote
-              size={36}
-              className="rotate-180"
-              style={{ color: `${accentColor}40` }}
-            />
-          </div>
+          <div className="w-12 h-[1px] bg-zinc-200 mt-10 mb-10" />
+        </motion.div>
 
-          <p className="text-lg sm:text-xl text-zinc-700 leading-relaxed font-light italic mt-2">
-            {message}
+        {/* Personal message */}
+        {personalMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6, ease: EASE_OUT }}
+            className="mb-16 pl-6 border-l-2"
+            style={{ borderColor: `${accentColor}40` }}
+          >
+            <p className="text-lg text-zinc-600 leading-relaxed italic">
+              &ldquo;{personalMessage}&rdquo;
+            </p>
+          </motion.div>
+        )}
+
+        {/* Deliverables */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.5, ease: EASE_OUT }}
+        >
+          <p className="text-xs tracking-widest text-zinc-400 uppercase mb-8">
+            Entregáveis &middot; {deliverables.length} {deliverables.length === 1 ? "item" : "itens"}
           </p>
 
-          {author && (
-            <div className="flex items-center gap-3 mt-6">
-              <div
-                className="w-8 h-[2px]"
-                style={{ background: accentColor }}
-              />
-              <p className="text-sm font-semibold text-zinc-600">{author}</p>
-            </div>
-          )}
-        </div>
-      </motion.div>
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.1 }}
+            className="space-y-3"
+          >
+            {deliverables.map((d, i) => (
+              <DeliverableRow key={`${d.title}-${i}`} deliverable={d} accentColor={accentColor} index={i} />
+            ))}
+          </motion.div>
+        </motion.div>
+      </div>
     </section>
   );
 }
 
-// ── Deliverable Card ─────────────────────────────────────────
-function DeliverableCard({
+// ── Deliverable Row ─────────────────────────────────────────
+function DeliverableRow({
   deliverable,
   accentColor,
+  index,
 }: {
   deliverable: Deliverable;
   accentColor: string;
+  index: number;
 }) {
   const Icon = TYPE_ICONS[deliverable.type] ?? IconExternalLink;
-  const typeLabel = TYPE_LABELS[deliverable.type] ?? deliverable.type;
 
   const canDownload = isDownloadable(deliverable.type);
   const directUrl = getDirectDownloadUrl(deliverable.url);
@@ -594,144 +500,79 @@ function DeliverableCard({
       rel="noopener noreferrer"
       onClick={handleClick}
       variants={staggerItem}
-      whileHover={{
-        y: -6,
-        transition: { duration: 0.25 },
-      }}
-      className="group block rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 transition-all duration-300 hover:shadow-lg hover:border-zinc-300"
+      className="group flex items-start gap-5 p-5 sm:p-6 rounded-xl border border-zinc-100 hover:border-zinc-200 hover:bg-zinc-50/50 transition-all duration-300"
     >
+      {/* Number */}
+      <span className="text-[11px] font-mono text-zinc-300 mt-1 shrink-0 w-5 text-right">
+        {String(index + 1).padStart(2, "0")}
+      </span>
+
+      {/* Icon */}
       <div
-        className="w-14 h-14 rounded-xl flex items-center justify-center transition-colors duration-300"
-        style={{ backgroundColor: `${accentColor}12` }}
+        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+        style={{ backgroundColor: `${accentColor}10` }}
       >
-        <Icon
-          size={28}
-          className="transition-colors duration-300"
-          style={{ color: accentColor }}
-        />
+        <Icon size={20} style={{ color: accentColor }} />
       </div>
 
-      <h3 className="text-lg font-semibold text-zinc-900 mt-5">
-        {deliverable.title}
-      </h3>
-      {deliverable.description && (
-        <p className="text-sm text-zinc-500 mt-2 leading-relaxed line-clamp-3">
-          {deliverable.description}
-        </p>
-      )}
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <h3 className="text-base font-semibold text-zinc-900 group-hover:text-zinc-700 transition-colors">
+          {deliverable.title}
+        </h3>
+        {deliverable.description && (
+          <p className="text-sm text-zinc-400 mt-1 leading-relaxed line-clamp-2">
+            {deliverable.description}
+          </p>
+        )}
+      </div>
 
-      <div className="flex items-center justify-between mt-6">
-        <Badge
-          variant="outline"
-          className="text-[10px] uppercase tracking-widest border-zinc-200 text-zinc-400 bg-transparent"
-        >
-          {typeLabel}
-          {deliverable.file_size && ` · ${deliverable.file_size}`}
-        </Badge>
-        <div className="flex items-center gap-1 text-zinc-400 group-hover:text-zinc-700 transition-colors duration-300">
-          {downloadUrl ? (
-            <>
-              <IconDownload size={14} />
-              <span className="text-xs font-medium">Baixar</span>
-            </>
-          ) : (
-            <>
-              <span className="text-xs font-medium">Acessar</span>
-              <IconExternalLink size={14} />
-            </>
-          )}
-        </div>
+      {/* Action */}
+      <div className="shrink-0 mt-1">
+        {downloadUrl ? (
+          <IconDownload size={16} className="text-zinc-300 group-hover:text-zinc-600 transition-colors" />
+        ) : (
+          <IconArrowRight size={16} className="text-zinc-300 group-hover:text-zinc-600 transition-colors" />
+        )}
       </div>
     </motion.a>
-  );
-}
-
-// ── Deliverables Section ─────────────────────────────────────
-function DeliverablesSection({
-  deliverables,
-  accentColor,
-}: {
-  deliverables: Deliverable[];
-  accentColor: string;
-}) {
-  return (
-    <section className="py-16 sm:py-24 px-4">
-      <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.5, ease: EASE_OUT }}
-          className="text-center mb-12"
-        >
-          <p className="text-xs tracking-[0.3em] text-zinc-400 uppercase mb-3">
-            Entregáveis
-          </p>
-          <p className="text-sm text-zinc-400">
-            {deliverables.length}{" "}
-            {deliverables.length === 1 ? "item" : "itens"} disponíveis
-          </p>
-        </motion.div>
-
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
-          className={`grid gap-4 sm:gap-6 ${
-            deliverables.length === 1
-              ? "grid-cols-1 max-w-md mx-auto"
-              : "grid-cols-1 md:grid-cols-2"
-          }`}
-        >
-          {deliverables.map((d, i) => (
-            <DeliverableCard
-              key={`${d.title}-${i}`}
-              deliverable={d}
-              accentColor={accentColor}
-            />
-          ))}
-        </motion.div>
-      </div>
-    </section>
   );
 }
 
 // ── Footer ──────────────────────────────────────────────────
 function FooterSection() {
   return (
-    <footer className="border-t border-zinc-200 py-12 px-4">
-      <div className="max-w-4xl mx-auto flex flex-col items-center gap-5">
-        <a href="https://wearetbo.com.br" target="_blank" rel="noopener noreferrer">
-          <Image
-            src="/logo-tbo.svg"
-            alt="TBO | Lançamentos Imobiliários"
-            width={80}
-            height={32}
-            className="h-7 w-auto opacity-40 hover:opacity-60 transition-opacity"
-          />
-        </a>
-        <p className="text-[11px] text-zinc-400 tracking-wide">
-          TBO | Lançamentos Imobiliários
-        </p>
-        <p className="text-sm text-zinc-500 text-center max-w-xs leading-relaxed">
-          Aproveite e conheça mais o nosso website e nossos serviços.
-        </p>
-        <a
-          href="https://wearetbo.com.br"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-zinc-300 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:border-zinc-400 transition-all"
-        >
-          Visitar wearetbo.com.br
-          <IconExternalLink size={14} />
-        </a>
-        <p className="text-xs text-zinc-400 mt-2">
-          contato@agenciatbo.com.br
-        </p>
-        <p className="text-[10px] text-zinc-300">
-          Este link de entrega foi gerado pelo TBO OS.
-        </p>
+    <footer className="bg-zinc-900 py-16 sm:py-20 px-6">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-8">
+          <div>
+            <a href="https://wearetbo.com.br" target="_blank" rel="noopener noreferrer">
+              <Image
+                src="/logo-tbo-dark.svg"
+                alt="TBO | Lançamentos Imobiliários"
+                width={80}
+                height={32}
+                className="h-7 w-auto opacity-50 hover:opacity-80 transition-opacity"
+              />
+            </a>
+            <p className="text-sm text-white/30 mt-4 max-w-xs leading-relaxed">
+              Aproveite e conheça mais o nosso website e nossos serviços.
+            </p>
+            <a
+              href="https://wearetbo.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors mt-4"
+            >
+              wearetbo.com.br
+              <IconArrowRight size={14} />
+            </a>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-white/20">contato@agenciatbo.com.br</p>
+            <p className="text-[10px] text-white/10 mt-1">Gerado pelo TBO OS</p>
+          </div>
+        </div>
       </div>
     </footer>
   );
@@ -760,25 +601,21 @@ export function DeliveryView({
   const [unlocked, setUnlocked] = useState(false);
   const [revealComplete, setRevealComplete] = useState(!isFirstAccess);
 
-  // Password gate — blocks everything until unlocked
   if (accessPassword && !unlocked) {
     return (
       <PasswordScreen
         accessPassword={accessPassword}
         onUnlock={() => setUnlocked(true)}
+        coverImageUrl={coverImageUrl}
       />
     );
   }
 
   return (
     <main className="relative">
-      {/* First-access reveal animation */}
       <AnimatePresence>
         {!revealComplete && (
-          <RevealAnimation
-            projectName={projectName}
-            onComplete={() => setRevealComplete(true)}
-          />
+          <RevealAnimation projectName={projectName} onComplete={() => setRevealComplete(true)} />
         )}
       </AnimatePresence>
 
@@ -788,25 +625,14 @@ export function DeliveryView({
         heroSubtitle={heroSubtitle}
         accentColor={accentColor}
         coverImageUrl={coverImageUrl}
+        deliveryDate={deliveryDate}
       />
 
-      <ContextSection
+      <ContentBody
         description={description}
         deliveryDate={deliveryDate}
-        clientCompany={clientCompany}
         deliveredBy={deliveredBy}
-        accentColor={accentColor}
-      />
-
-      {personalMessage && (
-        <PersonalMessageSection
-          message={personalMessage}
-          author={deliveredBy}
-          accentColor={accentColor}
-        />
-      )}
-
-      <DeliverablesSection
+        personalMessage={personalMessage}
         deliverables={deliverables}
         accentColor={accentColor}
       />

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS creative_briefings (
   project_name text,                     -- ex: "Empreendimento Bacoccini"
 
   -- Link para projeto interno (opcional)
-  project_id uuid REFERENCES os_projects(id),
+  project_id uuid REFERENCES projects(id),
 
   -- Status do briefing
   status text NOT NULL DEFAULT 'rascunho'

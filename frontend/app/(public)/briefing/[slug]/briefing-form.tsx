@@ -37,7 +37,7 @@ export function BriefingForm({
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const currentBriefingId = useRef(briefingId);
 
   const displayName = projectName

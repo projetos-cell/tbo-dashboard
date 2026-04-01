@@ -6,7 +6,8 @@ export async function updateSession(request: NextRequest, options?: { defaultRed
   const isPublicSkip =
     request.nextUrl.pathname.startsWith("/briefing") ||
     request.nextUrl.pathname.startsWith("/api/briefing") ||
-    request.nextUrl.pathname.startsWith("/intake");
+    request.nextUrl.pathname.startsWith("/intake") ||
+    request.nextUrl.pathname.startsWith("/entrega");
 
   if (isPublicSkip) {
     return NextResponse.next({ request });

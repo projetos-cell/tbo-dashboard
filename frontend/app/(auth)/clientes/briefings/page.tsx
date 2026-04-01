@@ -132,12 +132,15 @@ export default function BriefingsPage() {
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select
+            value={statusFilter || "all"}
+            onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}
+          >
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Todos os status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="enviado">Enviado</SelectItem>
               <SelectItem value="em_analise">Em Análise</SelectItem>
               <SelectItem value="aprovado">Aprovado</SelectItem>

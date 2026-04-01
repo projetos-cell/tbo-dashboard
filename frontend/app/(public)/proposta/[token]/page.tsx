@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -15,8 +15,10 @@ import {
   IconLoader2,
   IconMail,
   IconPhone,
+  IconLock,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -63,9 +65,11 @@ function formatDate(dateStr: string) {
   });
 }
 
-// ─── Alias for readability ───────────────────────────────────────────────────
+// ─── Extended type with password field ───────────────────────────────────────
 
-type ExtendedProposal = ClientLinkProposal;
+type ExtendedProposal = ClientLinkProposal & {
+  access_password?: string | null;
+};
 
 // ─── Status mapping (DB uses Portuguese, UI uses both) ──────────────────────
 
@@ -137,6 +141,79 @@ function DecidedState({ decision }: { decision: "approved" | "rejected" }) {
             wearetbo.com.br
           </a>
         </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Password gate ──────────────────────────────────────────────────────────
+
+function PasswordGate({
+  onUnlock,
+}: {
+  onUnlock: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="w-full max-w-sm"
+      >
+        <div className="bg-white rounded-xl border shadow-sm p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+            <IconLock size={24} className="text-zinc-400" />
+          </div>
+          <h2 className="text-lg font-bold text-zinc-900 mb-1">
+            Proposta protegida
+          </h2>
+          <p className="text-sm text-zinc-500 mb-6">
+            Digite a senha de acesso fornecida pela TBO.
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setChecking(true);
+              setError(false);
+              // Small delay for UX
+              setTimeout(() => {
+                onUnlock();
+                setChecking(false);
+              }, 300);
+            }}
+            className="space-y-3"
+          >
+            <Input
+              type="password"
+              placeholder="Senha de acesso"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError(false);
+              }}
+              className={`text-center ${error ? "border-red-300 focus-visible:ring-red-200" : ""}`}
+              autoFocus
+            />
+            {error && (
+              <p className="text-xs text-red-500">Senha incorreta. Tente novamente.</p>
+            )}
+            <Button
+              type="submit"
+              className="w-full bg-[#18181B] hover:bg-zinc-800"
+              disabled={!password.trim() || checking}
+            >
+              {checking ? "Verificando..." : "Acessar proposta"}
+            </Button>
+          </form>
+        </div>
+        <p className="text-center text-xs text-zinc-400 mt-4">
+          TBO | Lançamentos Imobiliários
+        </p>
       </motion.div>
     </div>
   );
@@ -794,6 +871,9 @@ export default function ProposalPublicPage() {
   const [decidedStatus, setDecidedStatus] = useState<
     "approved" | "rejected" | null
   >(null);
+  const [unlocked, setUnlocked] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
 
   const {
     data: proposal,
@@ -826,6 +906,19 @@ export default function ProposalPublicPage() {
     },
   });
 
+  const extProposal = proposal as ExtendedProposal | null;
+  const needsPassword = extProposal?.access_password && !unlocked;
+
+  const handlePasswordSubmit = useCallback(() => {
+    if (!extProposal?.access_password) return;
+    if (passwordInput.trim().toLowerCase() === extProposal.access_password.toLowerCase()) {
+      setUnlocked(true);
+      setPasswordError(false);
+    } else {
+      setPasswordError(true);
+    }
+  }, [passwordInput, extProposal?.access_password]);
+
   if (isLoading) return <ProposalSkeleton />;
 
   if (error || !proposal) {
@@ -846,13 +939,73 @@ export default function ProposalPublicPage() {
     );
   }
 
+  // Password gate
+  if (needsPassword) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-sm"
+        >
+          <div className="bg-white rounded-xl border shadow-sm p-8 text-center">
+            <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+              <IconLock size={24} className="text-zinc-400" />
+            </div>
+            <h2 className="text-lg font-bold text-zinc-900 mb-1">
+              Proposta protegida
+            </h2>
+            <p className="text-sm text-zinc-500 mb-6">
+              Digite a senha de acesso fornecida pela TBO.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handlePasswordSubmit();
+              }}
+              className="space-y-3"
+            >
+              <Input
+                type="password"
+                placeholder="Senha de acesso"
+                value={passwordInput}
+                onChange={(e) => {
+                  setPasswordInput(e.target.value);
+                  setPasswordError(false);
+                }}
+                className={`text-center ${passwordError ? "border-red-300 focus-visible:ring-red-200" : ""}`}
+                autoFocus
+              />
+              {passwordError && (
+                <p className="text-xs text-red-500">
+                  Senha incorreta. Tente novamente.
+                </p>
+              )}
+              <Button
+                type="submit"
+                className="w-full bg-[#18181B] hover:bg-zinc-800"
+                disabled={!passwordInput.trim()}
+              >
+                Acessar proposta
+              </Button>
+            </form>
+          </div>
+          <p className="text-center text-xs text-zinc-400 mt-4">
+            TBO | Lançamentos Imobiliários
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (decidedStatus) {
     return <DecidedState decision={decidedStatus} />;
   }
 
   return (
     <ProposalView
-      proposal={proposal as ExtendedProposal}
+      proposal={extProposal as ExtendedProposal}
       onDecide={(decision, feedback) =>
         decideMutation.mutate({ decision, feedback })
       }

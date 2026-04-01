@@ -323,7 +323,7 @@ function HeroSection({
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-white/40" />
         </motion.div>
       ) : (
         <div className="absolute inset-0 z-0">

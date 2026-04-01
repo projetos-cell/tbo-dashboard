@@ -175,16 +175,18 @@ function HeroSection({
           transition={{ duration: 0.4, delay: 0.2, ease: EASE_OUT }}
           className="mb-12 flex flex-col items-center"
         >
-          <Image
-            src="/logo-tbo.svg"
-            alt="TBO — The Branding Office"
-            width={80}
-            height={32}
-            className="h-8 w-auto opacity-40"
-            priority
-          />
-          <p className="text-[10px] tracking-[0.3em] text-zinc-400 uppercase mt-2">
-            The Branding Office
+          <a href="https://agenciatbo.com.br" target="_blank" rel="noopener noreferrer">
+            <Image
+              src="/logo-tbo.svg"
+              alt="TBO | Lançamentos Imobiliários"
+              width={120}
+              height={48}
+              className="h-10 w-auto opacity-60 hover:opacity-80 transition-opacity"
+              priority
+            />
+          </a>
+          <p className="text-[10px] tracking-[0.25em] text-zinc-400 uppercase mt-2">
+            think, build, own
           </p>
         </motion.div>
 
@@ -518,17 +520,31 @@ function CTASection({
 function FooterSection() {
   return (
     <footer className="border-t border-zinc-200 py-10 px-4">
-      <div className="max-w-4xl mx-auto flex flex-col items-center gap-3">
-        <Image
-          src="/logo-tbo.svg"
-          alt="TBO — The Branding Office"
-          width={60}
-          height={24}
-          className="h-6 w-auto opacity-30"
-        />
-        <p className="text-xs text-zinc-400">
-          contato@agenciatbo.com.br
+      <div className="max-w-4xl mx-auto flex flex-col items-center gap-4">
+        <a href="https://agenciatbo.com.br" target="_blank" rel="noopener noreferrer">
+          <Image
+            src="/logo-tbo.svg"
+            alt="TBO | Lançamentos Imobiliários"
+            width={80}
+            height={32}
+            className="h-7 w-auto opacity-40 hover:opacity-60 transition-opacity"
+          />
+        </a>
+        <p className="text-[11px] text-zinc-400 tracking-wide">
+          TBO | Lançamentos Imobiliários
         </p>
+        <div className="flex items-center gap-4 text-xs text-zinc-400">
+          <a
+            href="https://agenciatbo.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-zinc-600 transition-colors"
+          >
+            agenciatbo.com.br
+          </a>
+          <span className="text-zinc-300">·</span>
+          <span>contato@agenciatbo.com.br</span>
+        </div>
         <p className="text-[10px] text-zinc-300 mt-1">
           Este link de entrega foi gerado pelo TBO OS.
         </p>

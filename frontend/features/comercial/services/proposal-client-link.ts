@@ -103,6 +103,7 @@ export async function submitClientDecision(
   supabase: SupabaseClient<Database>,
   token: string,
   { decision, feedback }: ClientDecisionInput,
+  proposal?: ClientLinkProposal | null,
 ): Promise<void> {
   const { error } = await supabase
     .from("proposals" as never)
@@ -115,4 +116,39 @@ export async function submitClientDecision(
     } as never)
     .eq("client_token", token);
   if (error) throw error;
+
+  // Fire-and-forget notification email
+  if (proposal) {
+    notifyProposalDecision(proposal, decision, feedback ?? null, token).catch(
+      (err) => console.error("Failed to send proposal notification:", err),
+    );
+  }
+}
+
+/**
+ * Sends notification email to TBO team when client makes a decision.
+ */
+async function notifyProposalDecision(
+  proposal: ClientLinkProposal,
+  decision: ClientDecision,
+  feedback: string | null,
+  token: string,
+): Promise<void> {
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!SUPABASE_URL) return;
+
+  await fetch(`${SUPABASE_URL}/functions/v1/proposal-notify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      proposal_name: proposal.name,
+      ref_code: proposal.ref_code,
+      company: proposal.company,
+      contact_name: proposal.contact_name,
+      decision,
+      feedback,
+      value: proposal.value,
+      token,
+    }),
+  });
 }

@@ -899,7 +899,7 @@ export default function ProposalPublicPage() {
       feedback: string;
     }) => {
       const supabase = createClient();
-      return submitClientDecision(supabase, token, { decision, feedback });
+      return submitClientDecision(supabase, token, { decision, feedback }, extProposal);
     },
     onSuccess: (_data, { decision }) => {
       setDecidedStatus(decision);

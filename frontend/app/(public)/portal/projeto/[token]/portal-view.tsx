@@ -49,7 +49,6 @@ interface PortalProject {
   client_company: string | null;
   due_date_start: string | null;
   due_date_end: string | null;
-  cover_url: string | null;
 }
 
 interface ProjectPortalViewProps {

@@ -16,7 +16,7 @@ export default async function ProjectPortalPage({ params }: Props) {
   // 1. Lookup project by portal_token
   const { data: project } = await supabase
     .from("projects")
-    .select("id, name, status, client, client_company, due_date_start, due_date_end, cover_url")
+    .select("id, name, status, client, client_company, due_date_start, due_date_end")
     .eq("portal_token", token)
     .single();
 
@@ -24,7 +24,7 @@ export default async function ProjectPortalPage({ params }: Props) {
 
   // 2. Fetch tasks (non-parent, visible statuses only)
   const { data: tasks } = await supabase
-    .from("os_tasks")
+    .from("os_tasks" as any)
     .select(
       "id, title, status, is_completed, due_date, requires_client_approval, client_approval_status, client_approval_comment, client_approval_at"
     )
@@ -37,7 +37,7 @@ export default async function ProjectPortalPage({ params }: Props) {
   let latestUpdate: unknown = null;
   try {
     const { data } = await supabase
-      .from("project_status_updates")
+      .from("project_status_updates" as any)
       .select("id, status, summary, created_at, author_name")
       .eq("project_id", project.id)
       .order("created_at", { ascending: false })
@@ -55,7 +55,7 @@ export default async function ProjectPortalPage({ params }: Props) {
     client_approval_status: string | null; client_approval_comment: string | null;
     client_approval_at: string | null;
   };
-  const allTasks = (tasks ?? []) as PortalTask[];
+  const allTasks = (tasks ?? []) as unknown as PortalTask[];
   const pendingApprovals = allTasks.filter(
     (t) =>
       t.requires_client_approval &&

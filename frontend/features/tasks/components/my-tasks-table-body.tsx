@@ -137,7 +137,7 @@ export function SectionGrouping({
                   dndDisabled={dndDisabled}
                   selection={selection}
                 />
-                <TableRow className="hover:bg-transparent border-0">
+                <TableRow className="hover:bg-transparent border-0 border-t-0">
                   <TableCell colSpan={colSpan} className="py-0 px-0">
                     <QuickAddTask
                       sectionId={section.id}
@@ -158,9 +158,12 @@ export function SectionGrouping({
       {/* Unassigned tasks */}
       {grouped.has("__unassigned__") && (
         <TableBody>
-          <TableRow className="bg-muted/20 hover:bg-muted/30">
-            <TableCell colSpan={colSpan} className="py-1.5 px-2 text-sm font-semibold text-gray-500">
-              Sem seção ({grouped.get("__unassigned__")!.length})
+          <TableRow className="hover:bg-transparent border-b-0 border-t border-border/30">
+            <TableCell colSpan={colSpan} className="py-3 px-2 pt-5">
+              <span className="text-sm font-bold text-foreground">
+                Sem seção
+                <span className="ml-1.5 text-muted-foreground/40 font-normal text-xs">({grouped.get("__unassigned__")!.length})</span>
+              </span>
             </TableCell>
           </TableRow>
           <TaskRows
@@ -207,12 +210,14 @@ export function DynamicGrouping({
         return (
           <TableBody key={group.id}>
             <TableRow
-              className="bg-muted/30 hover:bg-muted/40 border-b cursor-pointer"
+              className="hover:bg-transparent border-b-0 border-t border-border/30 cursor-pointer"
               onClick={() => onToggleCollapse(group.id)}
             >
-              <TableCell colSpan={colSpan} className="py-1.5 px-2 text-sm font-semibold text-gray-700">
-                {group.label}{" "}
-                <span className="text-xs font-normal text-gray-400 ml-1">({group.tasks.length})</span>
+              <TableCell colSpan={colSpan} className="py-3 px-2 pt-5">
+                <span className="text-sm font-bold text-foreground">
+                  {group.label}
+                  <span className="ml-1.5 text-muted-foreground/40 font-normal text-xs">({group.tasks.length})</span>
+                </span>
               </TableCell>
             </TableRow>
             {!isCollapsed && (

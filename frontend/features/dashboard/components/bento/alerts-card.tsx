@@ -38,39 +38,39 @@ export function AlertsCard({ alerts }: AlertsCardProps) {
   const highCount = alerts.filter((a) => a.severity === "high").length;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border bg-card p-4">
+    <div className="flex h-full flex-col rounded-lg border border-border/30 p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold">Alertas</p>
+          <p className="text-sm font-bold text-foreground">Alertas</p>
           {highCount > 0 && (
-            <span className="flex size-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+            <span className="flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
               {highCount}
             </span>
           )}
         </div>
-        <span className="text-xs text-muted-foreground">{alerts.length} total</span>
+        <span className="text-xs text-muted-foreground/40">{alerts.length} total</span>
       </div>
 
       {alerts.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
+        <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground/60">
           Nenhum alerta ativo
         </div>
       ) : (
-        <div className="flex-1 space-y-1.5 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           {alerts.slice(0, 6).map((alert) => {
             const cfg = SEVERITY_CONFIG[alert.severity];
             return (
               <Link
                 key={alert.id}
                 href={alert.href}
-                className={`flex items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-muted/60 ${cfg.bg}`}
+                className="flex h-10 items-center gap-2.5 border-b border-border/30 px-1 transition-colors hover:bg-muted/40 last:border-b-0"
               >
-                <div className={`mt-0.5 size-1.5 shrink-0 rounded-full ${cfg.dot}`} />
+                <div className={`size-1.5 shrink-0 rounded-full ${cfg.dot}`} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium truncate">{alert.title}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{alert.detail}</p>
+                  <p className={`text-xs font-medium truncate ${cfg.text}`}>{alert.title}</p>
+                  <p className="text-[10px] text-muted-foreground/60 truncate">{alert.detail}</p>
                 </div>
-                <IconArrowRight className="size-3 shrink-0 text-muted-foreground/50 mt-0.5" />
+                <IconArrowRight className="size-3 shrink-0 text-muted-foreground/30" />
               </Link>
             );
           })}

@@ -142,7 +142,15 @@ export function PedidoForm({ open, onOpenChange, pedido }: PedidoFormProps) {
         toast({ title: "Pedido atualizado" });
       } else {
         await createPedido.mutateAsync({
-          ...values,
+          titulo: values.titulo,
+          prioridade: values.prioridade,
+          status: values.status,
+          vendor_id: values.vendor_id ?? null,
+          categoria_id: values.categoria_id ?? null,
+          valor_estimado: values.valor_estimado ?? null,
+          data_necessidade: values.data_necessidade ?? null,
+          descricao: values.descricao ?? null,
+          notes: values.notes ?? null,
           tenant_id: tenantId,
           data_solicitacao: new Date().toISOString(),
           data_aprovacao: null,
@@ -171,8 +179,7 @@ export function PedidoForm({ open, onOpenChange, pedido }: PedidoFormProps) {
           </SheetDescription>
         </SheetHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">
+        <Form form={form} onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">
             <FormField
               control={form.control}
               name="titulo"
@@ -414,7 +421,6 @@ export function PedidoForm({ open, onOpenChange, pedido }: PedidoFormProps) {
                 {isPending ? "Salvando..." : isEdit ? "Salvar" : "Criar"}
               </Button>
             </SheetFooter>
-          </form>
         </Form>
       </SheetContent>
     </Sheet>

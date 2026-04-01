@@ -27,18 +27,62 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useImportClicksignContracts } from "@/features/contratos/hooks/use-clicksign";
 import { ClicksignStatusBadge } from "@/features/contratos/components/clicksign-status-badge";
+import { useTablePreferences } from "@/hooks/use-table-preferences";
+import { TableDensityToggle } from "@/components/shared";
 import {
+  IconArrowRight,
+  IconBell,
+  IconCopy,
+  IconFileCheck,
   IconFileText,
-  IconSearch,
+  IconFilter,
   IconDownload,
   IconLoader2,
   IconPlus,
-  IconFilter,
+  IconRefresh,
+  IconSearch,
 } from "@tabler/icons-react";
 import { CONTRACT_TABS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
+
+/* ─── Module Cards ───────────────────────────────────────────────── */
+
+const T_GLASS = {
+  glass: "rgba(255,255,255,0.65)",
+  glassBorder: "rgba(255,255,255,0.45)",
+  glassShadow: "0 8px 32px rgba(15,15,15,0.06), 0 1px 3px rgba(15,15,15,0.04)",
+  glassBlur: "blur(16px) saturate(180%)",
+  rSm: "10px",
+  text: "#0f0f0f",
+  muted: "#4a4a4a",
+};
+
+const CONTRACT_MODULES = [
+  { href: "/contratos/ativos", label: "Contratos Ativos", description: "Contratos vigentes por categoria", icon: IconFileCheck, color: "#22c55e" },
+  { href: "/contratos/renovacoes", label: "Renovações & Aditivos", description: "Acompanhamento de renovações", icon: IconRefresh, color: "#3b82f6" },
+  { href: "/contratos/modelos", label: "Modelos", description: "Templates reutilizáveis", icon: IconCopy, color: "#8b5cf6" },
+  { href: "/contratos/alertas", label: "Alertas", description: "Vencimentos e notificações", icon: IconBell, color: "#f59e0b" },
+];
+
+function ContractModuleCard({ mod }: { mod: typeof CONTRACT_MODULES[number] }) {
+  const Icon = mod.icon;
+  return (
+    <Link href={mod.href} className="block transition-all hover:scale-[1.005]">
+      <div className="p-4 flex items-center gap-3" style={{ background: T_GLASS.glass, backdropFilter: T_GLASS.glassBlur, WebkitBackdropFilter: T_GLASS.glassBlur, border: `1px solid ${T_GLASS.glassBorder}`, borderRadius: T_GLASS.rSm, boxShadow: T_GLASS.glassShadow }}>
+        <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${mod.color}15` }}>
+          <Icon className="size-5" style={{ color: mod.color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold" style={{ color: T_GLASS.text }}>{mod.label}</p>
+          <p className="text-[11px] truncate" style={{ color: T_GLASS.muted }}>{mod.description}</p>
+        </div>
+        <IconArrowRight className="size-4 shrink-0" style={{ color: T_GLASS.muted }} />
+      </div>
+    </Link>
+  );
+}
 
 export default function ContratosPage() {
   // ─── State ────────────────────────────────────────────────────────
@@ -57,6 +101,7 @@ export default function ContratosPage() {
   const deleteMut = useDeleteContract();
   const updateMut = useUpdateContract();
   const importClicksign = useImportClicksignContracts();
+  const { density, saveDensity } = useTablePreferences("contratos");
   const personNames = useContractPersonNames();
 
   // ─── Tab config ───────────────────────────────────────────────────
@@ -171,17 +216,39 @@ export default function ContratosPage() {
 
   return (
     <RequireRole module="contratos" minRole="admin">
-      <div className="space-y-4">
-        {/* ── Header — compact single row ─────────────────────── */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold tracking-tight">Contratos</h1>
-            <Badge variant="secondary" className="font-mono text-xs">
-              {contracts.length}
-            </Badge>
-            <ClicksignStatusBadge />
+      <div className="-mx-4 md:-mx-8 lg:-mx-12 -my-6">
+      <div className="min-h-[calc(100dvh-64px)] p-5 space-y-4">
+        {/* ── Gradient Header Bar ─────────────────────────────── */}
+        <div className="relative overflow-hidden p-4" style={{ background: "linear-gradient(135deg, #1a1410 0%, #2d1810 50%, #c45a1a 100%)", borderRadius: "16px", boxShadow: "0 8px 32px rgba(196,90,26,0.15)" }}>
+          <div className="absolute inset-0 opacity-[0.04]"><div className="absolute -top-8 -right-8 size-32 border-[2px] border-white rounded-full" /><div className="absolute bottom-0 left-10 size-16 border-[2px] border-white rounded-full" /></div>
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="font-mono text-xs bg-white/10 text-white border-white/20">
+                {contracts.length} contratos
+              </Badge>
+              <ClicksignStatusBadge />
+            </div>
+            <div className="flex items-center gap-2">
+              <ContractGenerator variant="ghost" size="sm" label="Gerador" />
+              <Button size="sm" className="h-8 bg-white/15 hover:bg-white/25 text-white border-white/20" asChild>
+                <Link href="/contratos/novo">
+                  <IconPlus className="h-3.5 w-3.5 mr-1" />
+                  Novo Contrato
+                </Link>
+              </Button>
+            </div>
           </div>
+        </div>
 
+        {/* ── Module Cards ────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          {CONTRACT_MODULES.map((mod) => (
+            <ContractModuleCard key={mod.href} mod={mod} />
+          ))}
+        </div>
+
+        {/* ── Controls Row ────────────────────────────────────── */}
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             {/* Search inline */}
             <div className="relative">
@@ -207,7 +274,9 @@ export default function ContratosPage() {
                 {activeFilterCount}
               </Badge>
             )}
+          </div>
 
+          <div className="flex items-center gap-2">
             {/* Import */}
             <Button
               variant="ghost"
@@ -223,16 +292,8 @@ export default function ContratosPage() {
               )}
             </Button>
 
-            {/* Generator */}
-            <ContractGenerator variant="ghost" size="sm" label="" />
-
-            {/* New contract — stepper */}
-            <Button size="sm" className="h-8" asChild>
-              <Link href="/contratos/novo">
-                <IconPlus className="h-3.5 w-3.5 mr-1" />
-                Novo
-              </Link>
-            </Button>
+            {/* Density toggle */}
+            <TableDensityToggle density={density} onChange={saveDensity} />
           </div>
         </div>
 
@@ -311,6 +372,7 @@ export default function ContratosPage() {
           contract={editingContract}
           defaultCategory={defaultCategory}
         />
+      </div>
       </div>
     </RequireRole>
   );

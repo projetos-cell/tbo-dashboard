@@ -187,7 +187,7 @@ export default function LoginPage() {
     // Login OK — mostrar splash antes de redirecionar
     setShowSplash(true);
     setTimeout(() => {
-      router.push("/dashboard");
+      router.push("/servicos");
       router.refresh();
     }, 2200);
   }

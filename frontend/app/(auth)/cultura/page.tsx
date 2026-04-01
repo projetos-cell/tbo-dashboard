@@ -1,293 +1,394 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  IconColumns3,
-  IconRepeat,
-  IconShield,
-  IconAward,
-  IconHeart,
-  IconFileText,
-  IconBookmark,
-  IconArrowRight,
-  IconGift,
-  IconChartBar,
-  IconSchool,
-  IconBox,
-  IconTool,
-} from "@tabler/icons-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthStore } from "@/stores/auth-store";
 import { RequireRole } from "@/features/auth/components/require-role";
-import { CulturaOverviewStats } from "@/features/cultura/components/cultura-overview-stats";
-import { CulturaItemCard } from "@/features/cultura/components/cultura-item-card";
-import { CulturaItemDetail } from "@/features/cultura/components/cultura-item-detail";
-import { ErrorState, EmptyState } from "@/components/shared";
+import { ErrorState } from "@/components/shared";
 import { useCulturaItems } from "@/features/cultura/hooks/use-cultura";
 import { useRecognitionKPIs } from "@/features/cultura/hooks/use-reconhecimentos";
 import { useRitualTypes } from "@/features/cultura/hooks/use-ritual-types";
 import { useRewardsKPIs } from "@/features/cultura/hooks/use-rewards";
 import {
-  CULTURA_CATEGORIES,
-  type CulturaCategoryKey,
-} from "@/lib/constants";
-import type { Database } from "@/lib/supabase/types";
+  IconArrowRight,
+  IconAward,
+  IconBookmark,
+  IconBox,
+  IconCalendarHeart,
+  IconChartBar,
+  IconClipboardCheck,
+  IconFileText,
+  IconGift,
+  IconHeart,
+  IconRepeat,
+  IconScale,
+  IconSchool,
+  IconSearch,
+  IconStethoscope,
+  IconTarget,
+  IconTool,
+} from "@tabler/icons-react";
 
-type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
+/* ─── TBO Design Tokens ───────────────────────────────────────────── */
 
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  pilar: IconColumns3,
-  ritual: IconRepeat,
-  politica: IconShield,
-  reconhecimento: IconAward,
-  valor: IconHeart,
-  documento: IconFileText,
-  manual: IconBookmark,
+const T = {
+  text: "#0f0f0f",
+  muted: "#4a4a4a",
+  orange: "#c45a1a",
+  orangeGlow: "rgba(196,90,26,0.10)",
+  borderSolid: "#e0dcd7",
+  glass: "rgba(255,255,255,0.65)",
+  glassBorder: "rgba(255,255,255,0.45)",
+  glassShadow: "0 8px 32px rgba(15,15,15,0.06), 0 1px 3px rgba(15,15,15,0.04)",
+  glassBlur: "blur(16px) saturate(180%)",
+  r: "16px",
+  rSm: "10px",
 };
 
-const CATEGORY_LINKS: Record<string, string> = {
-  pilar: "/cultura/pilares",
-  valor: "/cultura/valores",
-  ritual: "/cultura/rituais",
-  politica: "/cultura/politicas",
-  reconhecimento: "/cultura/reconhecimentos",
-  documento: "/cultura/documentos",
-  manual: "/cultura/manual",
+/* ─── Section Card ────────────────────────────────────────────────── */
+
+function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={`p-5 ${className}`}
+      style={{
+        background: T.glass,
+        backdropFilter: T.glassBlur,
+        WebkitBackdropFilter: T.glassBlur,
+        border: `1px solid ${T.glassBorder}`,
+        borderRadius: T.r,
+        boxShadow: T.glassShadow,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ─── Header Bar ──────────────────────────────────────────────────── */
+
+function CulturaHeaderBar({ totalItems }: { totalItems: number }) {
+  return (
+    <div
+      className="relative overflow-hidden p-4"
+      style={{
+        background: "linear-gradient(135deg, #1a1410 0%, #2d1810 50%, #c45a1a 100%)",
+        borderRadius: T.r,
+        boxShadow: "0 8px 32px rgba(196,90,26,0.15)",
+      }}
+    >
+      <div className="absolute inset-0 opacity-[0.04]">
+        <div className="absolute -top-8 -right-8 size-32 border-[2px] border-white rounded-full" />
+        <div className="absolute bottom-0 left-10 size-16 border-[2px] border-white rounded-full" />
+      </div>
+      <div className="relative z-10 flex items-center justify-between">
+        <div className="flex gap-2">
+          <Link href="/cultura/reconhecimentos" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.10)" }}>
+            <IconAward className="size-3.5" style={{ color: "#f59e0b" }} />
+            Reconhecimentos
+          </Link>
+          <Link href="/cultura/okrs" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.08)" }}>
+            <IconTarget className="size-3.5" style={{ color: "#10b981" }} />
+            OKRs
+          </Link>
+          <Link href="/cultura/blog" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.08)" }}>
+            <IconFileText className="size-3.5" style={{ color: "#0ea5e9" }} />
+            Blog
+          </Link>
+          <Link href="/cultura/recompensas" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.08)" }}>
+            <IconGift className="size-3.5" style={{ color: "#ec4899" }} />
+            Rewards
+          </Link>
+        </div>
+        <div className="text-right">
+          <span className="text-lg font-bold text-white tabular-nums">{totalItems}</span>
+          <span className="text-[10px] text-white/40 ml-1">itens</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── KPIs Widget ─────────────────────────────────────────────────── */
+
+function KPIsWidget({
+  recognitionCount,
+  ritualCount,
+  rewardsCount,
+  totalItems,
+  isLoading,
+}: {
+  recognitionCount: number;
+  ritualCount: number;
+  rewardsCount: number;
+  totalItems: number;
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <SectionCard>
+        <Skeleton className="h-4 w-16 mb-3" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-6 w-full mb-2" />
+        ))}
+      </SectionCard>
+    );
+  }
+
+  const items = [
+    { label: "Reconhecimentos", value: recognitionCount, color: "#f59e0b" },
+    { label: "Rituais", value: ritualCount, color: "#3b82f6" },
+    { label: "Recompensas", value: rewardsCount, color: "#ec4899" },
+    { label: "Total itens", value: totalItems, color: T.muted },
+  ];
+
+  return (
+    <SectionCard>
+      <h3 className="text-sm font-semibold mb-3" style={{ color: T.text }}>Resumo</h3>
+      <div className="space-y-2.5">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-center justify-between">
+            <span className="text-[11px]" style={{ color: T.muted }}>{item.label}</span>
+            <span className="text-sm font-semibold tabular-nums" style={{ color: T.text }}>{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+/* ─── Quick Links Widget ──────────────────────────────────────────── */
+
+function QuickLinksWidget() {
+  const links = [
+    { href: "/cultura/pilares", label: "Valores & Pilares", icon: IconHeart, color: "#ef4444" },
+    { href: "/cultura/calendario-rh", label: "Calendário RH", icon: IconCalendarHeart, color: "#f97316" },
+    { href: "/cultura/conhecimento", label: "Base de Conhecimento", icon: IconBookmark, color: "#6366f1" },
+    { href: "/cultura/academy", label: "TBO Academy", icon: IconSchool, color: "#059669" },
+  ];
+
+  return (
+    <SectionCard>
+      <h3 className="text-sm font-semibold mb-3" style={{ color: T.text }}>Acesso Rápido</h3>
+      <div className="space-y-1.5">
+        {links.map((link) => {
+          const Icon = link.icon;
+          return (
+            <Link key={link.href} href={link.href} className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors hover:bg-black/[0.03]">
+              <Icon className="size-3.5 shrink-0" style={{ color: link.color }} />
+              <span className="text-xs font-medium flex-1" style={{ color: T.text }}>{link.label}</span>
+              <IconArrowRight className="size-3 shrink-0" style={{ color: T.muted }} />
+            </Link>
+          );
+        })}
+      </div>
+    </SectionCard>
+  );
+}
+
+/* ─── Search Bar ──────────────────────────────────────────────────── */
+
+function CulturaSearch({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div
+      className="flex items-center gap-2 px-4 py-3"
+      style={{
+        background: T.glass,
+        backdropFilter: T.glassBlur,
+        WebkitBackdropFilter: T.glassBlur,
+        border: `1px solid ${T.glassBorder}`,
+        borderRadius: T.r,
+        boxShadow: T.glassShadow,
+      }}
+    >
+      <IconSearch className="size-4 shrink-0" style={{ color: T.muted }} />
+      <input
+        type="text"
+        placeholder="Buscar em cultura..."
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#9a9a9a]"
+        style={{ color: T.text }}
+      />
+    </div>
+  );
+}
+
+/* ─── Module Definitions ──────────────────────────────────────────── */
+
+type ModuleDef = {
+  href: string;
+  label: string;
+  description: string;
+  icon: React.ElementType;
+  color: string;
+  adminOnly?: boolean;
 };
+
+const MODULES: ModuleDef[] = [
+  { href: "/cultura/pilares", label: "Valores & Pilares", description: "Fundamentos da identidade TBO", icon: IconHeart, color: "#ef4444" },
+  { href: "/cultura/rituais", label: "Rituais", description: "Cerimônias e práticas recorrentes", icon: IconRepeat, color: "#3b82f6" },
+  { href: "/cultura/reconhecimentos", label: "Reconhecimentos", description: "Celebrar quem faz a diferença", icon: IconAward, color: "#f59e0b" },
+  { href: "/cultura/recompensas", label: "TBO Rewards", description: "Catálogo de recompensas e resgates", icon: IconGift, color: "#ec4899" },
+  { href: "/cultura/okrs", label: "OKRs", description: "Objetivos e resultados-chave", icon: IconTarget, color: "#10b981" },
+  { href: "/cultura/conhecimento", label: "Base de Conhecimento", description: "SOPs, templates e guias por BU", icon: IconBookmark, color: "#6366f1" },
+  { href: "/cultura/blog", label: "Blog Interno", description: "Artigos e comunicados internos", icon: IconFileText, color: "#0ea5e9" },
+  { href: "/cultura/decisoes", label: "Decisões", description: "Registro de decisões estratégicas", icon: IconScale, color: "#8b5cf6" },
+  { href: "/cultura/academy", label: "TBO Academy", description: "Trilhas de aprendizado cultural", icon: IconSchool, color: "#059669" },
+  { href: "/cultura/calendario-rh", label: "Calendário RH", description: "Eventos, datas e marcos do time", icon: IconCalendarHeart, color: "#f97316" },
+  { href: "/cultura/pesquisa-clima", label: "Pesquisa de Clima", description: "Pulso organizacional e feedback", icon: IconClipboardCheck, color: "#14b8a6" },
+  { href: "/cultura/bau-criativo", label: "Baú Criativo", description: "Referências e inspirações visuais", icon: IconBox, color: "#8b5cf6" },
+  { href: "/cultura/ferramentas", label: "Guia de Ferramentas", description: "Ferramentas oficiais e boas práticas", icon: IconTool, color: "#06b6d4" },
+  { href: "/cultura/diagnostico", label: "Diagnóstico", description: "Avaliação de maturidade cultural", icon: IconStethoscope, color: "#f43f5e", adminOnly: true },
+  { href: "/cultura/analytics", label: "Analytics de Cultura", description: "Métricas e insights de cultura", icon: IconChartBar, color: "#6366f1", adminOnly: true },
+];
+
+function ModuleCard({ mod }: { mod: ModuleDef }) {
+  const Icon = mod.icon;
+  return (
+    <Link href={mod.href} className="block transition-all hover:scale-[1.005]">
+      <div
+        className="p-4 flex items-center gap-3"
+        style={{
+          background: T.glass,
+          backdropFilter: T.glassBlur,
+          WebkitBackdropFilter: T.glassBlur,
+          border: `1px solid ${T.glassBorder}`,
+          borderRadius: T.rSm,
+          boxShadow: T.glassShadow,
+        }}
+      >
+        <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${mod.color}15` }}>
+          <Icon className="size-5" style={{ color: mod.color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold" style={{ color: T.text }}>{mod.label}</p>
+          <p className="text-[11px] truncate" style={{ color: T.muted }}>{mod.description}</p>
+        </div>
+        <IconArrowRight className="size-4 shrink-0" style={{ color: T.muted }} />
+      </div>
+    </Link>
+  );
+}
+
+/* ─── Loading Skeleton ────────────────────────────────────────────── */
+
+function HubSkeleton() {
+  return (
+    <div className="-mx-4 md:-mx-8 lg:-mx-12 -my-6">
+      <div className="flex gap-0 min-h-[calc(100dvh-64px)]">
+        <aside className="hidden lg:flex flex-col w-[260px] shrink-0 p-4 gap-4" style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderRight: `1px solid ${T.glassBorder}` }}>
+          <Skeleton className="h-40 rounded-2xl" />
+          <Skeleton className="h-40 rounded-2xl" />
+        </aside>
+        <main className="flex-1 min-w-0 p-5 space-y-4">
+          <Skeleton className="h-14 rounded-2xl" />
+          <Skeleton className="h-12 rounded-2xl" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 rounded-xl" />
+          ))}
+        </main>
+        <aside className="hidden xl:flex flex-col w-[300px] shrink-0 p-4 gap-4" style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderLeft: `1px solid ${T.glassBorder}` }}>
+          <Skeleton className="h-40 rounded-2xl" />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Page ────────────────────────────────────────────────────────── */
 
 export default function CulturaPage() {
-  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const { data: items, isLoading, error, refetch } = useCulturaItems();
   const { data: recKPIs } = useRecognitionKPIs();
   const { data: rituals } = useRitualTypes();
   const { data: rewardKPIs } = useRewardsKPIs();
-  const [viewingId, setViewingId] = useState<string | null>(null);
+
+  const totalItems = items?.length ?? 0;
+  const recognitionCount = recKPIs?.total ?? 0;
+  const ritualCount = rituals?.length ?? 0;
+  const rewardsCount = rewardKPIs?.activeRewards ?? 0;
+
+  const publicModules = useMemo(() => MODULES.filter((m) => !m.adminOnly), []);
+  const adminModules = useMemo(() => MODULES.filter((m) => m.adminOnly), []);
+
+  const filteredPublic = useMemo(() => {
+    if (!searchQuery) return publicModules;
+    const q = searchQuery.toLowerCase();
+    return publicModules.filter((m) => m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q));
+  }, [searchQuery, publicModules]);
+
+  const filteredAdmin = useMemo(() => {
+    if (!searchQuery) return adminModules;
+    const q = searchQuery.toLowerCase();
+    return adminModules.filter((m) => m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q));
+  }, [searchQuery, adminModules]);
 
   if (error) {
     return <ErrorState message={error.message} onRetry={() => refetch()} />;
   }
 
-  if (viewingId) {
-    return (
-      <CulturaItemDetail
-        itemId={viewingId}
-        onBack={() => setViewingId(null)}
-      />
-    );
-  }
-
-  // Get latest items per category (max 3 each)
-  const recentByCategory = (items || []).reduce<
-    Record<string, CulturaRow[]>
-  >((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    if (acc[item.category].length < 3) acc[item.category].push(item);
-    return acc;
-  }, {});
+  if (!user) return <HubSkeleton />;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Cultura</h1>
-        <p className="text-gray-500 mt-1">
-          Visão geral dos pilares, rituais, políticas e reconhecimentos da
-          empresa.
-        </p>
+    <div className="-mx-4 md:-mx-8 lg:-mx-12 -my-6">
+      <div className="flex gap-0 min-h-[calc(100dvh-64px)]">
+        {/* Left Sidebar */}
+        <aside
+          className="hidden lg:flex flex-col w-[260px] shrink-0 p-4 gap-4"
+          style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderRight: `1px solid ${T.glassBorder}` }}
+        >
+          <KPIsWidget
+            recognitionCount={recognitionCount}
+            ritualCount={ritualCount}
+            rewardsCount={rewardsCount}
+            totalItems={totalItems}
+            isLoading={isLoading}
+          />
+        </aside>
+
+        {/* Center */}
+        <main className="flex-1 min-w-0 p-5 space-y-4">
+          <CulturaHeaderBar totalItems={totalItems} />
+          <CulturaSearch value={searchQuery} onChange={setSearchQuery} />
+
+          {/* Public Modules */}
+          <div>
+            <h2 className="text-sm font-semibold mb-3" style={{ color: T.text }}>Módulos</h2>
+            <div className="space-y-2">
+              {filteredPublic.map((mod) => (
+                <ModuleCard key={mod.href} mod={mod} />
+              ))}
+            </div>
+          </div>
+
+          {/* Admin Modules */}
+          {filteredAdmin.length > 0 && (
+            <RequireRole minRole="admin">
+              <div>
+                <h2 className="text-sm font-semibold mb-3" style={{ color: T.muted }}>Administração</h2>
+                <div className="space-y-2">
+                  {filteredAdmin.map((mod) => (
+                    <ModuleCard key={mod.href} mod={mod} />
+                  ))}
+                </div>
+              </div>
+            </RequireRole>
+          )}
+        </main>
+
+        {/* Right Sidebar */}
+        <aside
+          className="hidden xl:flex flex-col w-[300px] shrink-0 p-4 gap-4"
+          style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderLeft: `1px solid ${T.glassBorder}` }}
+        >
+          <QuickLinksWidget />
+        </aside>
       </div>
-
-      <CulturaOverviewStats
-        items={items}
-        isLoading={isLoading}
-        recognitionCount={recKPIs?.total}
-        ritualCount={rituals?.length}
-        rewardsCount={rewardKPIs?.activeRewards}
-      />
-
-      {/* Quick-access cards for specialized modules */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Link href="/cultura/reconhecimentos" className="group">
-          <Card className="h-full transition-colors group-hover:border-tbo-orange/40">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="rounded-lg p-2.5 bg-amber-500/10">
-                <IconAward className="size-5 text-amber-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">Reconhecimentos</p>
-                <p className="text-xs text-gray-500">
-                  {recKPIs?.total ?? 0} total &middot;{" "}
-                  {recKPIs?.thisMonth ?? 0} este mes
-                </p>
-              </div>
-              <IconArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/cultura/recompensas" className="group">
-          <Card className="h-full transition-colors group-hover:border-tbo-orange/40">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="rounded-lg p-2.5 bg-pink-500/10">
-                <IconGift className="size-5 text-pink-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">TBO Rewards</p>
-                <p className="text-xs text-gray-500">
-                  {rewardKPIs?.activeRewards ?? 0} recompensas &middot;{" "}
-                  {rewardKPIs?.pendingRedemptions ?? 0} pendentes
-                </p>
-              </div>
-              <IconArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/cultura/rituais" className="group">
-          <Card className="h-full transition-colors group-hover:border-tbo-orange/40">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="rounded-lg p-2.5 bg-blue-500/10">
-                <IconRepeat className="size-5 text-blue-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">Rituais</p>
-                <p className="text-xs text-gray-500">
-                  {rituals?.filter((r) => r.is_active).length ?? 0} ativos de{" "}
-                  {rituals?.length ?? 0}
-                </p>
-              </div>
-              <IconArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Novos módulos: Academy, Baú Criativo, Ferramentas */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Link href="/cultura/academy" className="group">
-          <Card className="h-full transition-colors group-hover:border-emerald-400/40">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="rounded-lg p-2.5 bg-emerald-500/10">
-                <IconSchool className="size-5 text-emerald-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">TBO Academy</p>
-                <p className="text-xs text-gray-500">
-                  Trilha de aprendizado cultural
-                </p>
-              </div>
-              <IconArrowRight className="size-4 text-gray-500 group-hover:text-emerald-500 transition-colors" />
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/cultura/bau-criativo" className="group">
-          <Card className="h-full transition-colors group-hover:border-purple-400/40">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="rounded-lg p-2.5 bg-purple-500/10">
-                <IconBox className="size-5 text-purple-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">Baú Criativo</p>
-                <p className="text-xs text-gray-500">
-                  Referências e inspirações
-                </p>
-              </div>
-              <IconArrowRight className="size-4 text-gray-500 group-hover:text-purple-500 transition-colors" />
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/cultura/ferramentas" className="group">
-          <Card className="h-full transition-colors group-hover:border-cyan-400/40">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="rounded-lg p-2.5 bg-cyan-500/10">
-                <IconTool className="size-5 text-cyan-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">Guia de Ferramentas</p>
-                <p className="text-xs text-gray-500">
-                  Ferramentas oficiais e boas praticas
-                </p>
-              </div>
-              <IconArrowRight className="size-4 text-gray-500 group-hover:text-cyan-500 transition-colors" />
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Analytics link — admin only */}
-      <RequireRole minRole="admin">
-        <Link href="/cultura/analytics" className="group block">
-          <Card className="transition-colors group-hover:border-indigo-400/40 bg-indigo-50/40 dark:bg-indigo-900/10 border-dashed">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="rounded-lg p-2.5 bg-indigo-500/10">
-                <IconChartBar className="size-5 text-indigo-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">Analytics de Cultura</p>
-                <p className="text-xs text-gray-500">
-                  Metricas e insights — visivel apenas para fundadores e gestores
-                </p>
-              </div>
-              <IconArrowRight className="size-4 text-gray-500 group-hover:text-indigo-500 transition-colors" />
-            </CardContent>
-          </Card>
-        </Link>
-      </RequireRole>
-
-      {/* Category sections with recent items */}
-      {(
-        Object.entries(CULTURA_CATEGORIES) as [
-          CulturaCategoryKey,
-          (typeof CULTURA_CATEGORIES)[CulturaCategoryKey],
-        ][]
-      ).map(([key, def]) => {
-        const catItems = recentByCategory[key] || [];
-        if (catItems.length === 0) return null;
-        const link = CATEGORY_LINKS[key];
-        const Icon = CATEGORY_ICONS[key] || IconFileText;
-
-        return (
-          <Card key={key}>
-            <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Icon className="size-4" style={{ color: def.color }} />
-                {def.label}
-              </CardTitle>
-              {link && (
-                <Link
-                  href={link}
-                  className="text-xs text-gray-500 hover:text-tbo-orange flex items-center gap-1"
-                >
-                  Ver todos
-                  <IconArrowRight className="size-3" />
-                </Link>
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {catItems.map((item) => (
-                  <CulturaItemCard
-                    key={item.id}
-                    item={item}
-                    onView={(i) => setViewingId(i.id)}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-
-      {!isLoading && (!items || items.length === 0) && (
-        <EmptyState
-          icon={IconHeart}
-          title="Nenhum item de cultura cadastrado ainda"
-          description="Comece adicionando pilares, rituais ou políticas."
-          cta={{ label: "Ver pilares", onClick: () => router.push("/cultura/pilares") }}
-        />
-      )}
     </div>
   );
 }

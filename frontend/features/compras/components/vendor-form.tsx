@@ -47,7 +47,7 @@ const vendorSchema = z.object({
   phone: z.string().optional().nullable(),
   category: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
-  is_active: z.boolean().default(true),
+  is_active: z.boolean(),
 });
 
 type VendorFormValues = z.infer<typeof vendorSchema>;
@@ -112,7 +112,16 @@ export function VendorForm({ open, onOpenChange, vendor }: VendorFormProps) {
         await updateVendor.mutateAsync({ id: vendor.id, updates: values });
         toast({ title: "Fornecedor atualizado com sucesso" });
       } else {
-        await createVendor.mutateAsync({ ...values, tenant_id: tenantId });
+        await createVendor.mutateAsync({
+          name: values.name,
+          cnpj: values.cnpj ?? null,
+          email: values.email ?? null,
+          phone: values.phone ?? null,
+          category: values.category ?? null,
+          notes: values.notes ?? null,
+          is_active: values.is_active,
+          tenant_id: tenantId,
+        });
         toast({ title: "Fornecedor criado com sucesso" });
       }
       onOpenChange(false);
@@ -133,8 +142,7 @@ export function VendorForm({ open, onOpenChange, vendor }: VendorFormProps) {
           </SheetDescription>
         </SheetHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">
+        <Form form={form} onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -287,7 +295,6 @@ export function VendorForm({ open, onOpenChange, vendor }: VendorFormProps) {
                 {isPending ? "Salvando..." : isEdit ? "Salvar" : "Criar"}
               </Button>
             </SheetFooter>
-          </form>
         </Form>
       </SheetContent>
     </Sheet>

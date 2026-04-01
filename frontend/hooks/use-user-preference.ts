@@ -37,8 +37,8 @@ export function useUserPreference<T>(key: string, defaultValue: T) {
       if (!userId) return defaultValue;
 
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("user_preferences" as never)
+      const { data, error } = await (supabase as any)
+        .from("user_preferences")
         .select("value")
         .eq("user_id", userId)
         .eq("key", key)
@@ -73,11 +73,11 @@ export function useUserPreference<T>(key: string, defaultValue: T) {
       if (!userId) return;
 
       const supabase = createClient();
-      await supabase.from("user_preferences" as never).upsert(
+      await (supabase as any).from("user_preferences").upsert(
         {
           user_id: userId,
           key,
-          value: newValue as never,
+          value: newValue,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id,key" },

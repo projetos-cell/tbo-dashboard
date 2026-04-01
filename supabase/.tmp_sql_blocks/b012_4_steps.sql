@@ -1,0 +1,32 @@
+-- Steps para SOP 4
+DELETE FROM knowledge_sop_steps WHERE sop_id = (SELECT id FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops');
+INSERT INTO knowledge_sop_steps (sop_id, title, content, step_type, order_index)
+SELECT id, 'Objetivo', E'Definir como a TBO cria, revisa, publica e mantém seus SOPs no TBO OS, garantindo que a base de processos seja um ativo vivo e útil — não um cemitério de documentos esquecidos. Este meta-SOP é o padrão para todos os outros SOPs da empresa.', 'step', 0
+FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops'
+UNION ALL
+SELECT id, 'Escopo', E'Aplica-se à criação de novos SOPs, revisão de SOPs existentes e encerramento de SOPs obsoletos. Qualquer colaborador pode sugerir um SOP. Líderes de BU são responsáveis pela manutenção dos SOPs de sua área. Revisão final é do Diretor de Operações.', 'step', 1
+FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops'
+UNION ALL
+SELECT id, 'RACI', E'| Atividade | Responsável | Aprovador | Consultado | Informado |\n|-----------|-------------|-----------|------------|-----------|\n| Identificar gap | Qualquer colaborador | Líder de BU | — | Ops |\n| Redigir conteúdo | Líder de BU / dono do processo | Dir. Operações | Time da BU | — |\n| Revisão técnica | QA/Ops | Líder de BU | — | — |\n| Publicação | Ops | Dir. Operações | — | Time TBO |\n| Revisão trimestral | Líder de BU | Dir. Operações | — | — |\n| Encerramento | Dir. Operações | Founder | Líder de BU | Time TBO |', 'step', 2
+FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops'
+UNION ALL
+SELECT id, 'Pré-requisitos', E'- Acesso ao módulo de Conhecimento no TBO OS\n- Identificação clara do processo que precisa ser documentado\n- Entrevista com quem executa o processo hoje (mínimo 1 pessoa)\n- Referência: SOPs existentes da mesma BU para manter consistência de formato e tom', 'step', 3
+FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops'
+UNION ALL
+SELECT id, 'Procedimento', E'**Etapa 1 — Identificação e Priorização**\n1. Registrar sugestão: TBO OS → Conhecimento → Sugestões de SOP\n2. Ops prioriza mensalmente por: impacto operacional, frequência de uso, BUs com gaps\n3. Criar tarefa no backlog com responsável e prazo\n\n**Etapa 2 — Redação do SOP (10 seções obrigatórias)**\n1. Objetivo, Escopo, RACI, Pré-requisitos, Procedimento\n2. Checklist de Validação, Ferramentas, SLAs, Troubleshooting, Template\nPrincípios: linguagem direta, verbos no imperativo, markdown rico, sem redundâncias\n\n**Etapa 3 — Score de Qualidade (mínimo 8.0 para publicar)**\nAvaliar 7 critérios: Clareza (15%), Completude (20%), Acionabilidade (20%), Scannability (10%), Template (15%), RACI (10%), SLAs (10%)\n\n**Etapa 4 — Publicação no TBO OS**\n1. Criar SOP com metadados completos (título, slug, BU, categoria, tags)\n2. Inserir conteúdo nas 10 seções como steps\n3. Publicar e notificar time\n\n**Etapa 5 — Manutenção Trimestral**\n1. Revisão trimestral com Líder de BU: processo ainda reflete a realidade?\n2. Mudanças → nova versão (versionamento automático)\n3. SOPs obsoletos → status "archived" (nunca deletar)', 'step', 4
+FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops'
+UNION ALL
+SELECT id, 'Checklist de Validação', E'- [ ] 10 seções obrigatórias presentes e preenchidas\n- [ ] Score de qualidade ≥ 8.0 antes de publicar\n- [ ] Slug único (não duplicado com SOPs existentes)\n- [ ] RACI com pessoas nomeadas (não "a equipe")\n- [ ] Template prático incluído e funcional\n- [ ] SLAs com números reais (não "o mais rápido possível")\n- [ ] Revisado por pelo menos 1 pessoa que executa o processo\n- [ ] Publicado no TBO OS com metadados completos\n- [ ] Time da BU notificado da publicação', 'checkpoint', 5
+FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops'
+UNION ALL
+SELECT id, 'Ferramentas e Recursos', E'- **Base de Conhecimento**: TBO OS → Módulo Conhecimento\n- **Sugestões de SOP**: TBO OS → Conhecimento → Sugestões\n- **Referência de formato**: SOPs com score ≥ 9.0 da mesma BU\n- **Score de qualidade**: Planilha de avaliação (link no TBO OS → Conhecimento → Recursos)\n- **Notificação de publicação**: Canal #processos no sistema de comunicação interno', 'tip', 6
+FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops'
+UNION ALL
+SELECT id, 'SLAs e Métricas', E'| Métrica | Meta |\n|---------|------|\n| Tempo do registro à publicação | ≤ 7 dias úteis |\n| Cobertura de processos críticos documentados | ≥ 95% por BU |\n| Score médio do portfólio | ≥ 8.5 |\n| SOPs revisados no trimestre | 100% do backlog |\n| SOPs desatualizados (>6 meses sem revisão) | ≤ 5% do total |\n| Colaboradores que usaram um SOP no mês | ≥ 80% do time |', 'note', 7
+FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops'
+UNION ALL
+SELECT id, 'Troubleshooting', E'**Ninguém usa os SOPs criados**\n→ Problema de cultura. Tornar SOPs acessíveis na home do TBO OS. Referenciar em onboardings. Criar cultura de "consultar o SOP antes de perguntar".\n\n**SOP desatualizado causou erro**\n→ Corrigir imediatamente (versão 2.0). Comunicar o time. Investigar por que a revisão trimestral não capturou o gap.\n\n**Dois SOPs descrevem o mesmo processo de forma diferente**\n→ Ops consolida em um SOP canônico e arquiva o duplicado.\n\n**Líder de BU sem tempo para manter SOPs**\n→ Delegar redação para quem executa. Líder revisa e aprova. Responsabilidade de aprovação é do líder, não de redigir.', 'warning', 8
+FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops'
+UNION ALL
+SELECT id, 'Template Anexo — Brief de Novo SOP', E'```markdown\n# Brief de Novo SOP — [TÍTULO PROVISÓRIO]\nSolicitado por: _______ | Data: _______ | BU: _______\n\n## Processo a Documentar\n_____________________________________________\n\n## Por que esse SOP é necessário agora?\n- [ ] Processo novo sem documentação\n- [ ] Processo só na cabeça de uma pessoa\n- [ ] Erros recorrentes por falta de padronização\n- [ ] Onboarding exige documentação\n- [ ] Outro: _______\n\n## Quem Consultar\n- Quem executa: _______ | Quem aprova: _______\n\n## Prazo: _______ | Prioridade: Crítica / Alta / Média / Baixa\n\n## Aprovação\n- Líder de BU: _______ Data: _______\n- Ops: _______ Data: _______\n```', 'tip', 9
+FROM knowledge_sops WHERE slug = 'tbo-geral-008-criacao-manutencao-sops';

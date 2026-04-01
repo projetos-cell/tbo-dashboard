@@ -46,6 +46,14 @@
   --radius-bento-lg: 1.5rem;
   --color-glass: var(--glass);
   --color-glass-border: var(--glass-border);
+  --color-hub-bg: var(--hub-bg);
+  --color-hub-bg-alt: var(--hub-bg-alt);
+  --color-hub-surface: var(--hub-surface);
+  --color-hub-border-solid: var(--hub-border-solid);
+  --color-hub-orange: var(--hub-orange);
+  --color-hub-orange-hover: var(--hub-orange-hover);
+  --color-hub-orange-muted: var(--hub-orange-muted);
+  --color-hub-orange-glow: var(--hub-orange-glow);
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
@@ -120,9 +128,19 @@
   --sidebar-ring: oklch(0.65 0.22 33);
   --sidebar-indicator: oklch(0.65 0.22 33);
 
-  /* ── Glass (Academy) ── */
+  /* ── Glass ── */
   --glass: oklch(0.98 0 0 / 0.6);
   --glass-border: oklch(0.9 0 0 / 0.3);
+
+  /* ── Hub ── */
+  --hub-bg: #f0ede9;
+  --hub-bg-alt: #e8e4df;
+  --hub-surface: #e2dfd9;
+  --hub-border-solid: #e0dcd7;
+  --hub-orange: #c45a1a;
+  --hub-orange-hover: #aa4d17;
+  --hub-orange-muted: #9e835f;
+  --hub-orange-glow: rgba(196, 90, 26, 0.10);
 }
 
 .dark {
@@ -174,9 +192,19 @@
   --sidebar-ring: oklch(0.68 0.22 33);
   --sidebar-indicator: oklch(0.68 0.22 33);
 
-  /* ── Glass (Academy) ── */
+  /* ── Glass ── */
   --glass: oklch(0.18 0.02 265 / 0.6);
   --glass-border: oklch(1 0 0 / 0.05);
+
+  /* ── Hub ── */
+  --hub-bg: #1a1410;
+  --hub-bg-alt: #2d1810;
+  --hub-surface: #1e1a15;
+  --hub-border-solid: #3a342e;
+  --hub-orange: #d97a45;
+  --hub-orange-hover: #e89060;
+  --hub-orange-muted: #b8a080;
+  --hub-orange-glow: rgba(217, 122, 69, 0.15);
 }
 
 @layer base {

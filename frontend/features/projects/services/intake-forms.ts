@@ -29,7 +29,8 @@ export interface IntakeField {
 }
 
 // Use untyped client to bypass missing table in generated types
-type UntypedClient = SupabaseClient<Record<string, never>>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedClient = SupabaseClient<any>;
 
 const COLS =
   "id,project_id,tenant_id,title,description,fields_json,target_section_id,default_status,default_priority,token,is_active,created_at,updated_at";

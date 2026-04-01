@@ -1,235 +1,123 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  useDeals,
-  useUpdateDealStage,
-  usePipelines as useDealPipelines,
-  useRdPipelines,
-  useDealOwners,
-  useUpdateDeal,
-  useCrmStages,
-} from "@/features/comercial/hooks/use-commercial";
-import { DealKPICards } from "@/features/comercial/components/deal-kpis";
-import { RdPipelineKanban } from "@/features/comercial/components/rd-pipeline-kanban";
-import { DealPipeline } from "@/features/comercial/components/deal-pipeline";
-import { PipelineFilters } from "@/features/comercial/components/pipeline-filters";
-import { DealDetailDialog } from "@/features/comercial/components/deal-detail-dialog";
-import { DealFormDialog } from "@/features/comercial/components/deal-form-dialog";
-import { BulkActionBar } from "@/features/comercial/components/bulk-action-bar";
-import { computeDealKPIs } from "@/features/comercial/services/commercial";
+import { useMemo } from "react";
+import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthStore } from "@/stores/auth-store";
 import { RequireRole } from "@/features/auth/components/require-role";
+import { useDeals } from "@/features/comercial/hooks/use-commercial";
+import { computeDealKPIs } from "@/features/comercial/services/commercial";
 import { ErrorState } from "@/components/shared";
-import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { IconPlus, IconGitBranch, IconCheckbox } from "@tabler/icons-react";
-import { toast } from "sonner";
-import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
-import type { Database } from "@/lib/supabase/types";
+import {
+  IconArrowRight,
+  IconChartBar,
+  IconCurrencyDollar,
+  IconFileText,
+  IconPackage,
+  IconPlus,
+  IconRocket,
+  IconSearch,
+  IconSettings,
+  IconTargetArrow,
+  IconTrendingUp,
+  IconUsers,
+} from "@tabler/icons-react";
 
-type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
+/* ─── TBO Design Tokens ───────────────────────────────────────────── */
+
+const T = {
+  text: "#0f0f0f",
+  muted: "#4a4a4a",
+  orange: "#c45a1a",
+  orangeGlow: "rgba(196,90,26,0.10)",
+  glass: "rgba(255,255,255,0.65)",
+  glassBorder: "rgba(255,255,255,0.45)",
+  glassShadow: "0 8px 32px rgba(15,15,15,0.06), 0 1px 3px rgba(15,15,15,0.04)",
+  glassBlur: "blur(16px) saturate(180%)",
+  r: "16px",
+  rSm: "10px",
+};
+
+function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`p-5 ${className}`} style={{ background: T.glass, backdropFilter: T.glassBlur, WebkitBackdropFilter: T.glassBlur, border: `1px solid ${T.glassBorder}`, borderRadius: T.r, boxShadow: T.glassShadow }}>
+      {children}
+    </div>
+  );
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+}
+
+/* ─── Module Definitions ──────────────────────────────────────────── */
+
+type ModuleDef = {
+  href: string;
+  label: string;
+  description: string;
+  icon: React.ElementType;
+  color: string;
+};
+
+const MODULES: ModuleDef[] = [
+  { href: "/comercial/pipeline", label: "Pipeline CRM", description: "Kanban de deals, funis e estágios", icon: IconTrendingUp, color: "#3b82f6" },
+  { href: "/comercial/leads", label: "Leads & Clientes", description: "Base de contatos e qualificação", icon: IconUsers, color: "#8b5cf6" },
+  { href: "/comercial/propostas", label: "Propostas", description: "Geração e acompanhamento de propostas", icon: IconFileText, color: "#f59e0b" },
+  { href: "/comercial/servicos", label: "Catálogo de Serviços", description: "Serviços, preços e margens", icon: IconPackage, color: "#22c55e" },
+  { href: "/comercial/precificacao", label: "Precificação", description: "Tabelas de preço e simuladores", icon: IconCurrencyDollar, color: "#ec4899" },
+  { href: "/comercial/demandas", label: "Demandas", description: "Demandas comerciais recebidas", icon: IconTargetArrow, color: "#14b8a6" },
+  { href: "/comercial/relatorios", label: "Relatórios", description: "Analytics e performance comercial", icon: IconChartBar, color: "#6366f1" },
+  { href: "/comercial/integracoes", label: "Integrações", description: "RD Station, Omie e conectores", icon: IconSettings, color: "#9ca3af" },
+];
+
+function ModuleCard({ mod }: { mod: ModuleDef }) {
+  const Icon = mod.icon;
+  return (
+    <Link href={mod.href} className="block transition-all hover:scale-[1.005]">
+      <div className="p-4 flex items-center gap-3" style={{ background: T.glass, backdropFilter: T.glassBlur, WebkitBackdropFilter: T.glassBlur, border: `1px solid ${T.glassBorder}`, borderRadius: T.rSm, boxShadow: T.glassShadow }}>
+        <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${mod.color}15` }}>
+          <Icon className="size-5" style={{ color: mod.color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold" style={{ color: T.text }}>{mod.label}</p>
+          <p className="text-[11px] truncate" style={{ color: T.muted }}>{mod.description}</p>
+        </div>
+        <IconArrowRight className="size-4 shrink-0" style={{ color: T.muted }} />
+      </div>
+    </Link>
+  );
+}
+
+/* ─── Loading Skeleton ────────────────────────────────────────────── */
+
+function HubSkeleton() {
+  return (
+    <div className="-mx-4 md:-mx-8 lg:-mx-12 -my-6">
+      <div className="flex gap-0 min-h-[calc(100dvh-64px)]">
+        <aside className="hidden lg:flex flex-col w-[260px] shrink-0 p-4 gap-4" style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderRight: `1px solid ${T.glassBorder}` }}>
+          <Skeleton className="h-44 rounded-2xl" />
+        </aside>
+        <main className="flex-1 min-w-0 p-5 space-y-4">
+          <Skeleton className="h-14 rounded-2xl" />
+          <Skeleton className="h-12 rounded-2xl" />
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+        </main>
+        <aside className="hidden xl:flex flex-col w-[300px] shrink-0 p-4 gap-4" style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderLeft: `1px solid ${T.glassBorder}` }}>
+          <Skeleton className="h-44 rounded-2xl" />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Page ────────────────────────────────────────────────────────── */
 
 export default function ComercialPage() {
-  const [search, setSearch] = useState("");
-  const [stageFilter, setStageFilter] = useState("");
-  const [ownerFilter, setOwnerFilter] = useState("");
-  const [selectedDeal, setSelectedDeal] = useState<DealRow | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingDeal, setEditingDeal] = useState<DealRow | null>(null);
-  const [selectedPipelineId, setSelectedPipelineId] = useState<string>("all");
+  const user = useAuthStore((s) => s.user);
+  const { data: deals = [], isLoading, error, refetch } = useDeals({});
 
-  // ── Bulk selection ──────────────────────────────────────────────────────────
-  const [bulkMode, setBulkMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  const handleBulkToggle = useCallback((dealId: string, checked: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(dealId);
-      else next.delete(dealId);
-      return next;
-    });
-  }, []);
-
-  const handleBulkClear = useCallback(() => {
-    setSelectedIds(new Set());
-    setBulkMode(false);
-  }, []);
-
-  // ── Global shortcuts ────────────────────────────────────────────────────────
-  useGlobalShortcuts();
-
-  // Cmd+K → focus search input (inside PipelineFilters)
-  useEffect(() => {
-    function onOpenSearch() {
-      const input = document.querySelector<HTMLInputElement>(
-        'input[placeholder*="Buscar"]',
-      );
-      input?.focus();
-    }
-    window.addEventListener("tbo:open-search", onOpenSearch);
-    return () => window.removeEventListener("tbo:open-search", onOpenSearch);
-  }, []);
-
-  // "n" key (no modifiers, not in input) → open new deal form
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key !== "n" || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      if ((e.target as HTMLElement)?.isContentEditable) return;
-      handleNew();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Data fetching ───────────────────────────────────────────────────────────
-  const { data: pipelines = [], isLoading: pipelinesLoading } =
-    useRdPipelines();
-  const { data: owners = [] } = useDealOwners(
-    selectedPipelineId !== "all" ? selectedPipelineId : undefined,
-  );
-  const { data: crmStages } = useCrmStages();
-
-  const isPipelineView =
-    selectedPipelineId !== "all" &&
-    pipelines.some((p) => p.rd_pipeline_id === selectedPipelineId);
-
-  const activeFilters = useMemo(
-    () => ({
-      stage: !isPipelineView && stageFilter ? stageFilter : undefined,
-      rd_stage_id: isPipelineView && stageFilter ? stageFilter : undefined,
-      search: search || undefined,
-      pipeline:
-        selectedPipelineId !== "all" ? selectedPipelineId : undefined,
-      owner_name: ownerFilter || undefined,
-    }),
-    [stageFilter, search, selectedPipelineId, ownerFilter, isPipelineView],
-  );
-
-  const {
-    data: deals = [],
-    isLoading,
-    error,
-    refetch,
-  } = useDeals(activeFilters);
-
-  const updateStage = useUpdateDealStage();
-  const updateDeal = useUpdateDeal();
-
-  // ── Selected pipeline data ──────────────────────────────────────────────────
-  const selectedPipeline = useMemo(
-    () =>
-      pipelines.find((p) => p.rd_pipeline_id === selectedPipelineId) ?? null,
-    [pipelines, selectedPipelineId],
-  );
-
-  const pipelineStages = useMemo(
-    () => selectedPipeline?.stages ?? [],
-    [selectedPipeline],
-  );
-
-  // ── KPIs ────────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => computeDealKPIs(deals), [deals]);
-
-  const stageDistribution = useMemo(() => {
-    const stages = Object.keys(DEAL_STAGES) as DealStageKey[];
-    return stages.map((stage) => {
-      const stageDeals = deals.filter((d) => d.stage === stage);
-      return {
-        stage,
-        count: stageDeals.length,
-        value: stageDeals.reduce((s, d) => s + (d.value ?? 0), 0),
-      };
-    });
-  }, [deals]);
-
-  // ── Quick edit handler ──────────────────────────────────────────────────────
-  function handleQuickUpdate(dealId: string, field: string, value: unknown) {
-    if (field === "stage") {
-      updateStage.mutate({ id: dealId, stage: value as string });
-    } else {
-      updateDeal.mutate({ id: dealId, updates: { [field]: value } as never });
-    }
-  }
-
-  // ── Handlers ────────────────────────────────────────────────────────────────
-  function handleSelect(deal: DealRow) {
-    if (bulkMode) {
-      handleBulkToggle(deal.id, !selectedIds.has(deal.id));
-      return;
-    }
-    setSelectedDeal(deal);
-    setDetailOpen(true);
-  }
-
-  function handleEdit(deal: DealRow) {
-    setDetailOpen(false);
-    setEditingDeal(deal);
-    setFormOpen(true);
-  }
-
-  function handleNew() {
-    setEditingDeal(null);
-    setFormOpen(true);
-  }
-
-  function handleStageDrop(dealId: string, newStage: string) {
-    updateStage.mutate({ id: dealId, stage: newStage });
-    toast("Deal movido", {
-      description: "Ctrl+Z para desfazer",
-      duration: 3000,
-    });
-  }
-
-  async function handlePipelineStageDrop(
-    dealId: string,
-    newStageId: string,
-    newStageName: string,
-  ) {
-    const mappedStage = mapStageToInternal(newStageName);
-    updateDeal.mutate({
-      id: dealId,
-      updates: {
-        rd_stage_id: newStageId,
-        rd_stage_name: newStageName,
-        stage: mappedStage,
-      } as never,
-    });
-    toast("Deal movido", {
-      description: "Ctrl+Z para desfazer",
-      duration: 3000,
-    });
-  }
-
-  function handlePipelineChange(pipelineId: string) {
-    setSelectedPipelineId(pipelineId);
-    setStageFilter("");
-    setOwnerFilter("");
-  }
-
-  // ── Bulk actions ──────────────────────────────────────────────────────────
-  function handleBulkMoveToStage(stage: DealStageKey) {
-    const ids = Array.from(selectedIds);
-    for (const id of ids) {
-      updateStage.mutate({ id, stage });
-    }
-    toast.success(`${ids.length} deal${ids.length > 1 ? "s" : ""} movido${ids.length > 1 ? "s" : ""} para ${stage}`);
-    handleBulkClear();
-  }
-
-  function handleBulkAssignOwner(ownerName: string) {
-    const ids = Array.from(selectedIds);
-    for (const id of ids) {
-      updateDeal.mutate({ id, updates: { owner_name: ownerName } as never });
-    }
-    toast.success(`${ids.length} deal${ids.length > 1 ? "s" : ""} atribuído${ids.length > 1 ? "s" : ""} a ${ownerName}`);
-    handleBulkClear();
-  }
 
   if (error) {
     return (
@@ -239,171 +127,105 @@ export default function ComercialPage() {
     );
   }
 
-  const showPipelineView = selectedPipelineId !== "all" && selectedPipeline;
+  if (!user) return <HubSkeleton />;
 
   return (
     <RequireRole module="comercial">
-      <div className="space-y-6 min-w-0">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Comercial</h1>
-            <p className="text-sm text-gray-500">
-              Pipeline CRM — gestão de deals e funis comerciais.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={bulkMode ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}
-              className="gap-1.5"
-            >
-              <IconCheckbox className="h-4 w-4" />
-              {bulkMode ? "Cancelar seleção" : "Selecionar"}
-            </Button>
-            <Button onClick={handleNew}>
-              <IconPlus className="mr-2 h-4 w-4" />
-              Novo Deal
-            </Button>
-          </div>
-        </div>
-
-        {/* KPIs */}
-        <DealKPICards kpis={kpis} distribution={stageDistribution} />
-
-        {/* Pipeline selector tabs */}
-        {pipelines.length > 0 && (
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-              <IconGitBranch className="h-3.5 w-3.5" />
-              <span>Funis</span>
-            </div>
-            <Tabs
-              value={selectedPipelineId}
-              onValueChange={handlePipelineChange}
-            >
-              <TabsList>
-                <TabsTrigger value="all">
-                  Todos os Funis
-                  <Badge
-                    variant="secondary"
-                    className="ml-1.5 h-5 px-1.5 text-[10px]"
-                  >
-                    {deals.length}
-                  </Badge>
-                </TabsTrigger>
-                {pipelines.map((p) => (
-                  <TabsTrigger
-                    key={p.rd_pipeline_id}
-                    value={p.rd_pipeline_id}
-                  >
-                    {p.name}
-                    <Badge
-                      variant="secondary"
-                      className="ml-1.5 h-5 px-1.5 text-[10px]"
-                    >
-                      {p.deal_count}
-                    </Badge>
-                  </TabsTrigger>
+      <div className="-mx-4 md:-mx-8 lg:-mx-12 -my-6">
+        <div className="flex gap-0 min-h-[calc(100dvh-64px)]">
+          {/* Left Sidebar — KPIs */}
+          <aside className="hidden lg:flex flex-col w-[260px] shrink-0 p-4 gap-4" style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderRight: `1px solid ${T.glassBorder}` }}>
+            <SectionCard>
+              <h3 className="text-sm font-semibold mb-3" style={{ color: T.text }}>Resumo</h3>
+              <div className="space-y-2.5">
+                {[
+                  { label: "Deals abertos", value: kpis.active, color: "#3b82f6" },
+                  { label: "Pipeline total", value: formatCurrency(kpis.pipelineValue), color: "#22c55e" },
+                  { label: "Ganhos", value: kpis.won, color: "#10b981" },
+                  { label: "Perdidos", value: kpis.lost, color: "#ef4444" },
+                  { label: "Win rate", value: kpis.conversionRate ? `${kpis.conversionRate.toFixed(0)}%` : "—", color: T.muted },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-[11px]" style={{ color: T.muted }}>{item.label}</span>
+                    {isLoading ? <Skeleton className="h-4 w-12" /> : (
+                      <span className="text-sm font-semibold tabular-nums" style={{ color: T.text }}>{item.value}</span>
+                    )}
+                  </div>
                 ))}
-              </TabsList>
-            </Tabs>
-          </div>
-        )}
+              </div>
+            </SectionCard>
+          </aside>
 
-        {/* Filters */}
-        <PipelineFilters
-          search={search}
-          onSearchChange={setSearch}
-          stageFilter={stageFilter}
-          onStageChange={setStageFilter}
-          ownerFilter={ownerFilter}
-          onOwnerChange={setOwnerFilter}
-          stages={showPipelineView ? pipelineStages : []}
-          owners={owners}
-        />
+          {/* Center */}
+          <main className="flex-1 min-w-0 p-5 space-y-4">
+            {/* Header Bar */}
+            <div className="relative overflow-hidden p-4" style={{ background: "linear-gradient(135deg, #1a1410 0%, #2d1810 50%, #c45a1a 100%)", borderRadius: T.r, boxShadow: "0 8px 32px rgba(196,90,26,0.15)" }}>
+              <div className="absolute inset-0 opacity-[0.04]"><div className="absolute -top-8 -right-8 size-32 border-[2px] border-white rounded-full" /><div className="absolute bottom-0 left-10 size-16 border-[2px] border-white rounded-full" /></div>
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex gap-2">
+                  <Link href="/comercial/pipeline" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.10)" }}>
+                    <IconTrendingUp className="size-3.5" style={{ color: "#3b82f6" }} />
+                    Pipeline
+                  </Link>
+                  <Link href="/comercial/leads" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.08)" }}>
+                    <IconUsers className="size-3.5" style={{ color: "#8b5cf6" }} />
+                    Leads
+                  </Link>
+                  <Link href="/comercial/propostas" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.08)" }}>
+                    <IconFileText className="size-3.5" style={{ color: "#f59e0b" }} />
+                    Propostas
+                  </Link>
+                  <Link href="/comercial/servicos" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.08)" }}>
+                    <IconPackage className="size-3.5" style={{ color: "#22c55e" }} />
+                    Serviços
+                  </Link>
+                </div>
+                <div className="flex gap-4">
+                  <div className="text-right">
+                    <span className="text-lg font-bold text-white tabular-nums">{deals.length}</span>
+                    <span className="text-[10px] text-white/40 ml-1">deals</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-lg font-bold text-white tabular-nums">{formatCurrency(kpis.pipelineValue)}</span>
+                    <span className="text-[10px] text-white/40 ml-1">pipeline</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        {/* Kanban board */}
-        {showPipelineView ? (
-          <RdPipelineKanban
-            deals={deals}
-            stages={pipelineStages}
-            isLoading={isLoading || pipelinesLoading}
-            onSelect={handleSelect}
-            onStageDrop={handlePipelineStageDrop}
-            bulkMode={bulkMode}
-            selectedIds={selectedIds}
-            onBulkToggle={handleBulkToggle}
-            onQuickUpdate={handleQuickUpdate}
-            onCreateDeal={handleNew}
-          />
-        ) : (
-          <DealPipeline
-            deals={deals}
-            isLoading={isLoading}
-            onSelect={handleSelect}
-            onStageDrop={handleStageDrop}
-            bulkMode={bulkMode}
-            selectedIds={selectedIds}
-            onBulkToggle={handleBulkToggle}
-            onQuickUpdate={handleQuickUpdate}
-            customStages={crmStages}
-            onCreateDeal={handleNew}
-          />
-        )}
+            {/* Modules */}
+            <div>
+              <h2 className="text-sm font-semibold mb-3" style={{ color: T.text }}>Módulos</h2>
+              <div className="space-y-2">
+                {MODULES.map((mod) => (
+                  <ModuleCard key={mod.href} mod={mod} />
+                ))}
+              </div>
+            </div>
+          </main>
 
-        {/* Bulk action bar */}
-        <BulkActionBar
-          selectedCount={selectedIds.size}
-          onMoveToStage={handleBulkMoveToStage}
-          onAssignOwner={handleBulkAssignOwner}
-          onClear={handleBulkClear}
-          owners={owners}
-        />
-
-        {/* Dialogs */}
-        <DealDetailDialog
-          deal={selectedDeal}
-          open={detailOpen}
-          onOpenChange={setDetailOpen}
-          onEdit={handleEdit}
-        />
-
-        <DealFormDialog
-          open={formOpen}
-          onOpenChange={setFormOpen}
-          deal={editingDeal}
-        />
+          {/* Right Sidebar — Quick Links */}
+          <aside className="hidden xl:flex flex-col w-[300px] shrink-0 p-4 gap-4" style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderLeft: `1px solid ${T.glassBorder}` }}>
+            <SectionCard>
+              <h3 className="text-sm font-semibold mb-3" style={{ color: T.text }}>Acesso Rápido</h3>
+              <div className="space-y-1.5">
+                {[
+                  { href: "/comercial/pipeline", label: "Ver Pipeline Kanban", color: "#3b82f6" },
+                  { href: "/contratos", label: "Contratos", color: "#f59e0b" },
+                  { href: "/comercial/atividades", label: "Atividades CRM", color: "#8b5cf6" },
+                  { href: "/comercial/relatorios", label: "Analytics Comercial", color: "#22c55e" },
+                ].map((link) => (
+                  <Link key={link.href} href={link.href} className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors hover:bg-black/[0.03]">
+                    <span className="size-2 rounded-full shrink-0" style={{ background: link.color }} />
+                    <span className="text-xs font-medium flex-1" style={{ color: T.text }}>{link.label}</span>
+                    <IconArrowRight className="size-3 shrink-0" style={{ color: T.muted }} />
+                  </Link>
+                ))}
+              </div>
+            </SectionCard>
+          </aside>
+        </div>
       </div>
     </RequireRole>
   );
-}
-
-// ── Helper: map pipeline stage name to internal stage ─────────────────────────
-
-function mapStageToInternal(stageName: string): string {
-  const normalized = stageName.toLowerCase().trim();
-
-  const map: Record<string, string> = {
-    qualificação: "qualificacao",
-    qualificacao: "qualificacao",
-    proposta: "proposta",
-    negociação: "negociacao",
-    negociacao: "negociacao",
-    fechamento: "negociacao",
-    ganho: "fechado_ganho",
-    "fechado ganho": "fechado_ganho",
-    perdido: "fechado_perdido",
-    "fechado perdido": "fechado_perdido",
-    prospecção: "lead",
-    prospeccao: "lead",
-    "contato inicial": "lead",
-  };
-
-  for (const [key, value] of Object.entries(map)) {
-    if (normalized.includes(key)) return value;
-  }
-
-  return "lead";
 }

@@ -16,6 +16,9 @@ import {
 import type { useSortable } from "@dnd-kit/sortable";
 import type { InlineSelectOption } from "@/components/ui/inline-select";
 import { InlineDatePicker } from "./inline-date-picker";
+import { InlineProjectSelect } from "./inline-project-select";
+import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button";
+import { useTaskBookmarkIds, useToggleTaskBookmark } from "@/features/bookmarks/hooks/use-task-bookmarks";
 
 type SortableReturn = ReturnType<typeof useSortable>;
 
@@ -75,6 +78,10 @@ function TaskNameCell({
   listeners,
   dndDisabled,
 }: CellContext) {
+  const { data: bookmarkIds } = useTaskBookmarkIds();
+  const toggleBookmark = useToggleTaskBookmark();
+  const isBookmarked = (bookmarkIds ?? []).includes(task.id);
+
   return (
     <div className="flex items-center gap-1.5">
       {!dndDisabled && (
@@ -109,6 +116,15 @@ function TaskNameCell({
           {task.title}
         </p>
       </div>
+
+      <BookmarkButton
+        isBookmarked={isBookmarked}
+        onToggle={(e) => {
+          e.stopPropagation();
+          toggleBookmark.mutate({ taskId: task.id, isBookmarked });
+        }}
+        size="xs"
+      />
     </div>
   );
 }
@@ -140,12 +156,18 @@ function DueDateCell({ task, overdue, updateTask }: CellContext) {
   );
 }
 
-function ProjectCell({ projectName }: CellContext) {
-  if (!projectName) {
-    return <span className="text-xs text-muted-foreground/50">—</span>;
-  }
+function ProjectCell({ task, projectName, updateTask }: CellContext) {
   return (
-    <span className="truncate text-xs text-muted-foreground">{projectName}</span>
+    <InlineProjectSelect
+      value={task.project_id ?? null}
+      projectName={projectName}
+      onSave={(projectId) =>
+        updateTask.mutate({
+          id: task.id,
+          updates: { project_id: projectId },
+        })
+      }
+    />
   );
 }
 

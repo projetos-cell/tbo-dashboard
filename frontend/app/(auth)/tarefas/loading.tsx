@@ -1,35 +1,29 @@
-﻿import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TarefasLoading() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-4 w-56" />
-        </div>
-        <div className="flex gap-2">
-          <Skeleton className="h-9 w-40" />
-          <Skeleton className="h-9 w-32" />
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <Skeleton className="h-10 w-64" />
-        <div className="flex gap-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-6 w-20" />
-          ))}
+    <div className="flex flex-col gap-0">
+      {/* Top bar */}
+      <div className="flex items-center justify-between pb-3 border-b">
+        <Skeleton className="h-5 w-36" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-7 w-48 rounded-md" />
+          <Skeleton className="h-7 w-20 rounded-md" />
+          <Skeleton className="h-7 w-16 rounded-md" />
+          <Skeleton className="h-7 w-16 rounded-md" />
+          <Skeleton className="h-8 w-28 rounded-md" />
         </div>
       </div>
 
-      <div className="grid auto-cols-[280px] grid-flow-col gap-4">
+      {/* Content */}
+      <div className="space-y-px pt-4">
+        <Skeleton className="h-7 w-40 mb-3" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="space-y-2">
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-          </div>
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
+        <Skeleton className="h-7 w-40 mt-4 mb-3" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
         ))}
       </div>
     </div>

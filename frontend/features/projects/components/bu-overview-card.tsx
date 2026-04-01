@@ -42,17 +42,26 @@ export function BUOverviewCard({ buName, projects, onClick }: BUOverviewCardProp
     >
       <div className="min-w-0 flex-1">
         <h3 className="text-sm font-semibold tracking-tight">{buName}</h3>
-        <div className="mt-1.5 flex items-center gap-4 text-xs text-muted-foreground tabular-nums">
-          <span className="font-medium text-foreground/80">{stats.ativos}</span>
-          <span className="text-muted-foreground/60">ativos</span>
-          <span className="text-muted-foreground/40">·</span>
-          <span className="font-medium text-emerald-600">{stats.concluido}</span>
-          <span className="text-muted-foreground/60">concluídos</span>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground tabular-nums">
+          <span className="whitespace-nowrap">
+            <span className="font-medium text-foreground/80">{stats.ativos}</span>
+            {" "}
+            <span className="text-muted-foreground/60">ativos</span>
+          </span>
+          <span className="text-muted-foreground/30">·</span>
+          <span className="whitespace-nowrap">
+            <span className="font-medium text-emerald-600">{stats.concluido}</span>
+            {" "}
+            <span className="text-muted-foreground/60">concluídos</span>
+          </span>
           {stats.atrasados > 0 && (
             <>
-              <span className="text-muted-foreground/40">·</span>
-              <span className="text-destructive font-medium">{stats.atrasados}</span>
-              <span className="text-muted-foreground/60">atrasado{stats.atrasados !== 1 ? "s" : ""}</span>
+              <span className="text-muted-foreground/30">·</span>
+              <span className="whitespace-nowrap">
+                <span className="text-destructive font-medium">{stats.atrasados}</span>
+                {" "}
+                <span className="text-muted-foreground/60">atrasado{stats.atrasados !== 1 ? "s" : ""}</span>
+              </span>
             </>
           )}
         </div>

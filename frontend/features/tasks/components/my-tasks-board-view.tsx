@@ -108,7 +108,11 @@ export function MyTasksBoardView({ tasks, onSelect }: MyTasksBoardViewProps) {
         },
         {
           onError: () => {
-            toast({ title: "Erro ao mover tarefa", description: "Não foi possível mover a tarefa. Tente novamente.", variant: "destructive" });
+            toast({
+              title: "Erro ao mover tarefa",
+              description: "Não foi possível mover a tarefa. Tente novamente.",
+              variant: "destructive",
+            });
           },
         }
       );
@@ -151,12 +155,13 @@ export function MyTasksBoardView({ tasks, onSelect }: MyTasksBoardViewProps) {
 
   if (sectionsLoading) {
     return (
-      <div className="grid auto-cols-[280px] grid-flow-col gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-4 overflow-x-auto pb-4 pt-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex flex-col gap-2">
-            <Skeleton className="h-6 w-32" />
+          <div key={i} className="min-w-[280px] flex flex-col gap-2">
+            <Skeleton className="h-1 w-full rounded-full" />
+            <Skeleton className="h-5 w-24" />
             {Array.from({ length: 3 }).map((__, j) => (
-              <Skeleton key={j} className="h-20 w-full rounded-lg" />
+              <Skeleton key={j} className="h-24 w-full rounded-lg" />
             ))}
           </div>
         ))}
@@ -167,12 +172,20 @@ export function MyTasksBoardView({ tasks, onSelect }: MyTasksBoardViewProps) {
   if (sortedSections.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-        <IconLayoutKanban className="h-10 w-10 text-muted-foreground/40" />
+        <IconLayoutKanban className="h-10 w-10 text-muted-foreground/30" />
         <div>
-          <p className="text-sm font-medium text-muted-foreground">Nenhuma seção criada</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Crie uma seção para organizar suas tarefas no board</p>
+          <p className="text-sm font-medium text-muted-foreground">
+            Nenhuma seção criada
+          </p>
+          <p className="text-xs text-muted-foreground/60 mt-1">
+            Crie uma seção para organizar suas tarefas no board
+          </p>
         </div>
-        <Button size="sm" onClick={handleAddSection} disabled={createSection.isPending || !tenantId}>
+        <Button
+          size="sm"
+          onClick={handleAddSection}
+          disabled={createSection.isPending || !tenantId}
+        >
           <IconPlus className="mr-1.5 h-4 w-4" />
           Criar primeira seção
         </Button>
@@ -186,25 +199,27 @@ export function MyTasksBoardView({ tasks, onSelect }: MyTasksBoardViewProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid auto-cols-[280px] grid-flow-col gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-4 overflow-x-auto pb-4 pt-2 scroll-smooth snap-x">
         {sortedSections.map((section) => {
           const sectionTasks = grouped.get(section.id) ?? [];
           return (
-            <BoardColumn
-              key={section.id}
-              sectionId={section.id}
-              sectionName={section.name}
-              tasks={sectionTasks}
-              onSelect={onSelect}
-            />
+            <div key={section.id} className="snap-start">
+              <BoardColumn
+                sectionId={section.id}
+                sectionName={section.name}
+                tasks={sectionTasks}
+                onSelect={onSelect}
+              />
+            </div>
           );
         })}
 
-        <div className="flex w-[280px] shrink-0 flex-col items-center justify-center rounded-lg border border-dashed py-12">
+        {/* Add section column */}
+        <div className="flex min-w-[280px] shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/20 py-12">
           <Button
             variant="ghost"
             size="sm"
-            className="text-gray-400"
+            className="text-muted-foreground/50 hover:text-muted-foreground"
             onClick={handleAddSection}
           >
             <IconPlus className="mr-1.5 h-4 w-4" />

@@ -84,13 +84,13 @@ export async function POST(request: Request) {
       supabase as unknown as { from: (name: string) => ReturnType<typeof supabase.from> }
     ).from("portal_comments")
       .insert({
-        tenant_id: project.tenant_id,
+        tenant_id: (project as any).tenant_id,
         project_id: project.id,
         author_name: body.author_name.trim(),
         author_email: body.author_email?.trim() ?? "",
         content: body.content.trim(),
         is_internal: false,
-      })
+      } as any)
       .select()
       .single();
 

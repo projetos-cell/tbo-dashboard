@@ -25,7 +25,7 @@ type TaskTemplateInsert = {
 
 export async function getTaskTemplates(tenantId: string): Promise<TaskTemplate[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("task_templates")
     .select("*")
     .eq("tenant_id", tenantId)
@@ -37,7 +37,7 @@ export async function getTaskTemplates(tenantId: string): Promise<TaskTemplate[]
 
 export async function createTaskTemplate(template: TaskTemplateInsert): Promise<TaskTemplate> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("task_templates")
     .insert(template as never)
     .select("*")
@@ -49,6 +49,6 @@ export async function createTaskTemplate(template: TaskTemplateInsert): Promise<
 
 export async function deleteTaskTemplate(id: string): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase.from("task_templates").delete().eq("id", id);
+  const { error } = await (supabase as any).from("task_templates").delete().eq("id", id);
   if (error) throw error;
 }

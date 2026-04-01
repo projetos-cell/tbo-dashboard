@@ -23,10 +23,8 @@ export function DynamicGreeting() {
   const greeting = getGreeting()
 
   return (
-    <div className="space-y-2">
-      <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
-        {greeting}, {name}!
-      </h1>
-    </div>
+    <h1 className="text-base font-semibold text-foreground">
+      {greeting}, {name}!
+    </h1>
   )
 }

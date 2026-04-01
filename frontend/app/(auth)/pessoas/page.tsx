@@ -1,310 +1,193 @@
-﻿"use client";
+"use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { usePeople, usePeopleKPIs, usePeopleFilterOptions, usePeopleSnapshot, usePeopleNudges } from "@/features/people/hooks/use-people";
-import { usePeopleAutomations } from "@/features/people/hooks/use-people-automations";
-import { useViewState } from "@/hooks/use-view-state";
-import {
-  PeopleKPICardsV2,
-  type PeopleKPIKey,
-} from "@/features/people/components/people-kpis-v2";
-import { PeopleFilters } from "@/features/people/components/people-filters";
-import { PersonCard } from "@/features/people/components/person-card";
-import { PersonDetail } from "@/features/people/components/person-detail";
-import { PeopleNudges } from "@/features/people/components/people-nudges";
-import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/ui/button";
-import type { Database } from "@/lib/supabase/types";
-import type { SortSpec } from "@/services/view-state";
-import {
-  type PeopleFiltersSpec,
-  type PeopleKPIPreset,
-  KPI_FILTER_PRESETS,
-  DEFAULT_PEOPLE_SORT,
-  filtersToJson,
-  jsonToFilters,
-  hasActiveFilters,
-} from "@/features/people/utils/people-filters";
-import { IconUsers, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { useMemo } from "react";
+import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthStore } from "@/stores/auth-store";
 import { RBACGuard } from "@/components/rbac-guard";
+import { ErrorState } from "@/components/shared";
+import { usePeopleKPIs } from "@/features/people/hooks/use-people";
+import {
+  IconArrowRight,
+  IconAward,
+  IconChartBar,
+  IconGitBranch,
+  IconHierarchy,
+  IconSearch,
+  IconSettings,
+  IconTimeline,
+  IconUserCheck,
+  IconUsers,
+  IconUsersGroup,
+} from "@tabler/icons-react";
 
-type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+const T = {
+  text: "#0f0f0f",
+  muted: "#4a4a4a",
+  orange: "#c45a1a",
+  orangeGlow: "rgba(196,90,26,0.10)",
+  glass: "rgba(255,255,255,0.65)",
+  glassBorder: "rgba(255,255,255,0.45)",
+  glassShadow: "0 8px 32px rgba(15,15,15,0.06), 0 1px 3px rgba(15,15,15,0.04)",
+  glassBlur: "blur(16px) saturate(180%)",
+  r: "16px",
+  rSm: "10px",
+};
 
-const PAGE_SIZE = 40;
+function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`p-5 ${className}`} style={{ background: T.glass, backdropFilter: T.glassBlur, WebkitBackdropFilter: T.glassBlur, border: `1px solid ${T.glassBorder}`, borderRadius: T.r, boxShadow: T.glassShadow }}>
+      {children}
+    </div>
+  );
+}
+
+type ModuleDef = { href: string; label: string; description: string; icon: React.ElementType; color: string };
+
+const MODULES: ModuleDef[] = [
+  { href: "/pessoas/colaboradores", label: "Colaboradores", description: "Diretório completo do time", icon: IconUsersGroup, color: "#3b82f6" },
+  { href: "/pessoas/1on1", label: "1:1s", description: "Reuniões individuais e feedback", icon: IconUsers, color: "#8b5cf6" },
+  { href: "/pessoas/pdi", label: "PDI", description: "Planos de desenvolvimento individual", icon: IconGitBranch, color: "#22c55e" },
+  { href: "/pessoas/carreira", label: "Carreira", description: "Trilhas, níveis e promoções", icon: IconTimeline, color: "#f59e0b" },
+  { href: "/pessoas/performance", label: "Performance", description: "Avaliações e scoring", icon: IconChartBar, color: "#ec4899" },
+  { href: "/pessoas/reconhecimentos", label: "Reconhecimentos", description: "Celebrações e kudos do time", icon: IconAward, color: "#f97316" },
+  { href: "/pessoas/organograma", label: "Organograma", description: "Estrutura organizacional visual", icon: IconHierarchy, color: "#6366f1" },
+  { href: "/pessoas/timeline", label: "Timeline", description: "Histórico de eventos do time", icon: IconTimeline, color: "#14b8a6" },
+  { href: "/pessoas/configuracoes", label: "Configurações", description: "Campos, automações e regras", icon: IconSettings, color: "#9ca3af" },
+];
+
+function ModuleCard({ mod }: { mod: ModuleDef }) {
+  const Icon = mod.icon;
+  return (
+    <Link href={mod.href} className="block transition-all hover:scale-[1.005]">
+      <div className="p-4 flex items-center gap-3" style={{ background: T.glass, backdropFilter: T.glassBlur, WebkitBackdropFilter: T.glassBlur, border: `1px solid ${T.glassBorder}`, borderRadius: T.rSm, boxShadow: T.glassShadow }}>
+        <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${mod.color}15` }}>
+          <Icon className="size-5" style={{ color: mod.color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold" style={{ color: T.text }}>{mod.label}</p>
+          <p className="text-[11px] truncate" style={{ color: T.muted }}>{mod.description}</p>
+        </div>
+        <IconArrowRight className="size-4 shrink-0" style={{ color: T.muted }} />
+      </div>
+    </Link>
+  );
+}
+
+function HubSkeleton() {
+  return (
+    <div className="-mx-4 md:-mx-8 lg:-mx-12 -my-6">
+      <div className="flex gap-0 min-h-[calc(100dvh-64px)]">
+        <aside className="hidden lg:flex flex-col w-[260px] shrink-0 p-4 gap-4" style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderRight: `1px solid ${T.glassBorder}` }}>
+          <Skeleton className="h-44 rounded-2xl" />
+        </aside>
+        <main className="flex-1 min-w-0 p-5 space-y-4">
+          <Skeleton className="h-14 rounded-2xl" />
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+        </main>
+        <aside className="hidden xl:flex flex-col w-[300px] shrink-0 p-4 gap-4" style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderLeft: `1px solid ${T.glassBorder}` }}>
+          <Skeleton className="h-44 rounded-2xl" />
+        </aside>
+      </div>
+    </div>
+  );
+}
 
 export default function PessoasPage() {
-  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const { data: kpis, isLoading } = usePeopleKPIs();
 
-  // ── View state persistence ─────────────────────────────────────────────
-  const {
-    viewState,
-    isLoading: stateLoading,
-    updateFilters: persistFilters,
-    updateSort: persistSort,
-  } = useViewState("pessoas", "visao_geral");
-
-  // ── Local filter/sort state (derived from persisted on first load) ─────
-  const [filters, setFilters] = useState<PeopleFiltersSpec>({});
-  const [sort, setSort] = useState<SortSpec[]>(DEFAULT_PEOPLE_SORT);
-  const [page, setPage] = useState(0);
-  const [activeKPI, setActiveKPI] = useState<PeopleKPIKey | null>(null);
-  const [selectedPerson, setSelectedPerson] = useState<ProfileRow | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [initialized, setInitialized] = useState(false);
-
-  // Hydrate from persisted state on first load
-  useEffect(() => {
-    if (stateLoading || initialized) return;
-    const restoredFilters = jsonToFilters(viewState.filters);
-    const restoredSort = (viewState.sort as SortSpec[]);
-    setFilters(restoredFilters);
-    if (restoredSort?.length) setSort(restoredSort);
-
-    // Restore active KPI visual if a KPI preset was persisted
-    if (restoredFilters.kpi) {
-      setActiveKPI(restoredFilters.kpi as PeopleKPIKey);
-    } else if (restoredFilters.status?.length === 1) {
-      // Check if persisted status matches a KPI (e.g. "active", "onboarding")
-      const matchingKPI = Object.entries(KPI_FILTER_PRESETS).find(
-        ([, preset]) =>
-          preset.status?.length === 1 &&
-          preset.status[0] === restoredFilters.status?.[0]
-      );
-      if (matchingKPI) setActiveKPI(matchingKPI[0] as PeopleKPIKey);
-    }
-    setInitialized(true);
-  }, [stateLoading, viewState, initialized]);
-
-  // ── Filter change handler (with persistence) ──────────────────────────
-  const handleFiltersChange = useCallback(
-    (next: PeopleFiltersSpec) => {
-      setFilters(next);
-      setPage(0);
-      setActiveKPI(null); // Clear KPI selection on manual filter change
-      persistFilters(filtersToJson(next));
-    },
-    [persistFilters]
-  );
-
-  // ── Sort change handler (with persistence) ────────────────────────────
-  const handleSortChange = useCallback(
-    (next: SortSpec[]) => {
-      setSort(next);
-      setPage(0);
-      persistSort(next);
-    },
-    [persistSort]
-  );
-
-  // ── KPI click handler ─────────────────────────────────────────────────
-  const handleKPIClick = useCallback(
-    (key: PeopleKPIKey) => {
-      // Toggle off
-      if (activeKPI === key) {
-        setActiveKPI(null);
-        const cleared: PeopleFiltersSpec = { search: filters.search };
-        setFilters(cleared);
-        setPage(0);
-        persistFilters(filtersToJson(cleared));
-        return;
-      }
-
-      // "total" = clear everything
-      if (key === "total") {
-        setActiveKPI("total");
-        const cleared: PeopleFiltersSpec = { search: filters.search };
-        setFilters(cleared);
-        setPage(0);
-        persistFilters(filtersToJson(cleared));
-        return;
-      }
-
-      // month_recognitions → navigate
-      if (key === "month_recognitions") {
-        router.push("/pessoas/reconhecimentos");
-        return;
-      }
-
-      // Apply preset filter
-      const preset = KPI_FILTER_PRESETS[key];
-      if (preset) {
-        setActiveKPI(key);
-        const next: PeopleFiltersSpec = { search: filters.search, ...preset };
-        setFilters(next);
-        setPage(0);
-        persistFilters(filtersToJson(next));
-      }
-    },
-    [activeKPI, filters.search, persistFilters, router]
-  );
-
-  // ── Data fetching ─────────────────────────────────────────────────────
-  const {
-    data: result,
-    isLoading,
-    error,
-    refetch,
-  } = usePeople(filters, sort, { page, pageSize: PAGE_SIZE });
-
-  const people = result?.data ?? [];
-  const totalCount = result?.count ?? 0;
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
-  const { data: kpis, isLoading: kpisLoading } = usePeopleKPIs();
-  const { data: nudgeCounts, isLoading: nudgesLoading } = usePeopleNudges();
-  const { data: filterOptions } = usePeopleFilterOptions();
-  const { data: snapshots } = usePeopleSnapshot(people);
-
-  // ── Fase 6 — Run automations on module access (fire-and-forget) ───────
-  usePeopleAutomations();
-
-  // ── Nudge CTA handler (applies filter preset + persists) ──────────────
-  const handleNudgeClick = useCallback(
-    (preset: PeopleKPIPreset) => {
-      const filterPreset = KPI_FILTER_PRESETS[preset];
-      if (!filterPreset) return;
-      setActiveKPI(preset as PeopleKPIKey);
-      const next: PeopleFiltersSpec = { search: filters.search, ...filterPreset };
-      setFilters(next);
-      setPage(0);
-      persistFilters(filtersToJson(next));
-    },
-    [filters.search, persistFilters]
-  );
-
-  // ── Helpers ────────────────────────────────────────────────────────────
-  function handleSelectPerson(person: ProfileRow) {
-    setSelectedPerson(person);
-    setDetailOpen(true);
-  }
-
-  const emptyKpis = useMemo(
-    () => ({
-      total: 0,
-      active: 0,
-      onboarding: 0,
-      at_risk: 0,
-      pending_1on1: 0,
-      stale_pdi: 0,
-      month_recognitions: 0,
-      overloaded: 0,
-    }),
-    []
-  );
+  if (!user) return <HubSkeleton />;
 
   return (
     <RBACGuard minRole="colaborador">
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Pessoas</h1>
-        <p className="text-sm text-gray-500">
-          Gerencie sua equipe e acompanhe o status dos membros.
-        </p>
+      <div className="-mx-4 md:-mx-8 lg:-mx-12 -my-6">
+        <div className="flex gap-0 min-h-[calc(100dvh-64px)]">
+          {/* Left Sidebar — KPIs */}
+          <aside className="hidden lg:flex flex-col w-[260px] shrink-0 p-4 gap-4" style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderRight: `1px solid ${T.glassBorder}` }}>
+            <SectionCard>
+              <h3 className="text-sm font-semibold mb-3" style={{ color: T.text }}>Resumo</h3>
+              <div className="space-y-2.5">
+                {[
+                  { label: "Total", value: kpis?.total ?? 0, color: T.muted },
+                  { label: "Ativos", value: kpis?.active ?? 0, color: "#22c55e" },
+                  { label: "Onboarding", value: kpis?.onboarding ?? 0, color: "#3b82f6" },
+                  { label: "Em risco", value: kpis?.at_risk ?? 0, color: "#ef4444" },
+                  { label: "1:1 pendente", value: kpis?.pending_1on1 ?? 0, color: "#f59e0b" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-[11px]" style={{ color: T.muted }}>{item.label}</span>
+                    {isLoading ? <Skeleton className="h-4 w-10" /> : (
+                      <span className="text-sm font-semibold tabular-nums" style={{ color: T.text }}>{item.value}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          </aside>
+
+          {/* Center */}
+          <main className="flex-1 min-w-0 p-5 space-y-4">
+            {/* Header Bar */}
+            <div className="relative overflow-hidden p-4" style={{ background: "linear-gradient(135deg, #1a1410 0%, #2d1810 50%, #c45a1a 100%)", borderRadius: T.r, boxShadow: "0 8px 32px rgba(196,90,26,0.15)" }}>
+              <div className="absolute inset-0 opacity-[0.04]"><div className="absolute -top-8 -right-8 size-32 border-[2px] border-white rounded-full" /><div className="absolute bottom-0 left-10 size-16 border-[2px] border-white rounded-full" /></div>
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex gap-2">
+                  <Link href="/pessoas/colaboradores" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.10)" }}>
+                    <IconUsersGroup className="size-3.5" style={{ color: "#3b82f6" }} />
+                    Colaboradores
+                  </Link>
+                  <Link href="/pessoas/1on1" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.08)" }}>
+                    <IconUsers className="size-3.5" style={{ color: "#8b5cf6" }} />
+                    1:1s
+                  </Link>
+                  <Link href="/pessoas/performance" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.08)" }}>
+                    <IconChartBar className="size-3.5" style={{ color: "#ec4899" }} />
+                    Performance
+                  </Link>
+                  <Link href="/pessoas/organograma" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.08)" }}>
+                    <IconHierarchy className="size-3.5" style={{ color: "#6366f1" }} />
+                    Organograma
+                  </Link>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-bold text-white tabular-nums">{kpis?.total ?? 0}</span>
+                  <span className="text-[10px] text-white/40 ml-1">pessoas</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modules */}
+            <div>
+              <h2 className="text-sm font-semibold mb-3" style={{ color: T.text }}>Módulos</h2>
+              <div className="space-y-2">
+                {MODULES.map((mod) => <ModuleCard key={mod.href} mod={mod} />)}
+              </div>
+            </div>
+          </main>
+
+          {/* Right Sidebar — Quick Links */}
+          <aside className="hidden xl:flex flex-col w-[300px] shrink-0 p-4 gap-4" style={{ background: "rgba(240,237,233,0.5)", backdropFilter: "blur(8px)", borderLeft: `1px solid ${T.glassBorder}` }}>
+            <SectionCard>
+              <h3 className="text-sm font-semibold mb-3" style={{ color: T.text }}>Acesso Rápido</h3>
+              <div className="space-y-1.5">
+                {[
+                  { href: "/pessoas/colaboradores", label: "Ver diretório", color: "#3b82f6" },
+                  { href: "/pessoas/reconhecimentos", label: "Reconhecimentos", color: "#f97316" },
+                  { href: "/pessoas/pdi", label: "Planos de Desenvolvimento", color: "#22c55e" },
+                  { href: "/pessoas/carreira", label: "Trilhas de Carreira", color: "#f59e0b" },
+                ].map((link) => (
+                  <Link key={link.href} href={link.href} className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors hover:bg-black/[0.03]">
+                    <span className="size-2 rounded-full shrink-0" style={{ background: link.color }} />
+                    <span className="text-xs font-medium flex-1" style={{ color: T.text }}>{link.label}</span>
+                    <IconArrowRight className="size-3 shrink-0" style={{ color: T.muted }} />
+                  </Link>
+                ))}
+              </div>
+            </SectionCard>
+          </aside>
+        </div>
       </div>
-
-      {/* Fase 5 — Nudges de Ação (above KPIs) */}
-      <PeopleNudges
-        counts={nudgeCounts ?? { pending_1on1: 0, stale_pdi: 0, critical_score: 0, overloaded: 0 }}
-        isLoading={nudgesLoading}
-        onNudgeClick={handleNudgeClick}
-      />
-
-      {/* KPIs — 2 rows × 4 columns */}
-      <PeopleKPICardsV2
-        kpis={kpis ?? emptyKpis}
-        activeKPI={activeKPI}
-        onKPIClick={handleKPIClick}
-        isLoading={kpisLoading}
-      />
-
-      {/* Filters (search + status chips + advanced + sort) */}
-      <PeopleFilters
-        filters={filters}
-        sort={sort}
-        onFiltersChange={handleFiltersChange}
-        onSortChange={handleSortChange}
-        filterOptions={filterOptions}
-      />
-
-      {/* Result count */}
-      {!isLoading && !error && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            {totalCount === 0
-              ? "Nenhum resultado"
-              : totalCount === 1
-                ? "1 pessoa"
-                : `${totalCount} pessoas`}
-            {hasActiveFilters(filters) && " (filtrado)"}
-          </p>
-        </div>
-      )}
-
-      {/* People Grid */}
-      {error ? (
-        <ErrorState message={error.message} onRetry={() => refetch()} />
-      ) : isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-40 animate-pulse rounded-lg border bg-gray-100/40"
-            />
-          ))}
-        </div>
-      ) : people.length === 0 ? (
-        <EmptyState
-          icon={IconUsers}
-          title="Nenhuma pessoa encontrada"
-          description="Ajuste os filtros ou adicione novos membros à equipe."
-        />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {people.map((person) => (
-            <PersonCard
-              key={person.id}
-              person={person}
-              snapshot={snapshots?.[person.id]}
-              onClick={() => handleSelectPerson(person)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-          >
-            <IconChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm text-gray-500">
-            Página {page + 1} de {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            <IconChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
-      {/* Detail Sheet */}
-      <PersonDetail
-        person={selectedPerson}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-      />
-    </div>
     </RBACGuard>
   );
 }

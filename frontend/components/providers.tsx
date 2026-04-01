@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect, type ReactNode } from "react";
 import { ThemeProvider } from "@/components/themes";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import { CommandPalette } from "@/components/shared/command-palette";
 import { ProjectSearchDialog } from "@/features/projects/components/project-search-dialog";
@@ -36,9 +37,11 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        <TooltipProvider delayDuration={300}>
         <CommandPalette>
           {children}
         </CommandPalette>
+        </TooltipProvider>
         <ProjectSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
         <Toaster richColors position="bottom-right" />
       </ThemeProvider>

@@ -10,6 +10,7 @@ import {
   type TablePrefsData,
 } from "@/services/table-preferences";
 import type { ColumnPref, SortPref } from "@/lib/column-types";
+import type { TableDensity } from "@/components/shared/table-density-toggle";
 
 export function useTablePreferences(tableId: string) {
   const supabase = createClient();
@@ -43,16 +44,30 @@ export function useTablePreferences(tableId: string) {
 
   const currentPrefs = query.data ?? null;
 
-  /** Save column prefs (merges with existing sort pref) */
+  /** Save column prefs (merges with existing prefs) */
   const saveColumns = (columns: ColumnPref[]) => {
-    saveMutation.mutate({ columns, sort: currentPrefs?.sort ?? null });
+    saveMutation.mutate({
+      columns,
+      sort: currentPrefs?.sort ?? null,
+      density: currentPrefs?.density ?? null,
+    });
   };
 
-  /** Save sort pref (merges with existing column prefs) */
+  /** Save sort pref (merges with existing prefs) */
   const saveSort = (sort: SortPref | null) => {
     saveMutation.mutate({
       columns: currentPrefs?.columns ?? [],
       sort,
+      density: currentPrefs?.density ?? null,
+    });
+  };
+
+  /** Save density pref (merges with existing prefs) */
+  const saveDensity = (density: TableDensity) => {
+    saveMutation.mutate({
+      columns: currentPrefs?.columns ?? [],
+      sort: currentPrefs?.sort ?? null,
+      density,
     });
   };
 
@@ -61,11 +76,15 @@ export function useTablePreferences(tableId: string) {
     columnPrefs: currentPrefs?.columns ?? null,
     /** Saved sort preference */
     sortPref: currentPrefs?.sort ?? null,
+    /** Saved density preference */
+    density: currentPrefs?.density ?? "normal",
     isLoading: query.isLoading,
     /** Persist column order/visibility changes */
     saveColumns,
     /** Persist sort preference changes */
     saveSort,
+    /** Persist density changes */
+    saveDensity,
     isSaving: saveMutation.isPending,
     /** Reset all preferences to defaults */
     reset: resetMutation.mutate,

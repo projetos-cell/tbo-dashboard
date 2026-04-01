@@ -3,7 +3,12 @@
  *
  * These complement the global RBAC in `permissions.ts` with
  * channel-scoped rules based on member role and channel settings.
+ *
+ * Global roles (RoleSlug): "admin" | "lider" | "colaborador"
+ * Note: "admin" encompasses both founder and diretoria (mapped in auth.ts).
  */
+
+import { hasPermission, type RoleSlug, type PermissionKey } from "@/lib/permissions";
 
 export type ChannelAction =
   | "send_message"
@@ -14,7 +19,7 @@ export type ChannelAction =
   | "pin_message";
 
 interface ChannelPermissionContext {
-  /** Global role slug (admin, lider, colaborador) */
+  /** Global role slug: "admin" (founder+diretoria), "lider", "colaborador" */
   userRole: string | null;
   /** User's role within the channel (admin | member | null if not a member) */
   channelMemberRole: string | null;
@@ -27,7 +32,16 @@ interface ChannelPermissionContext {
   isCreator: boolean;
 }
 
-const ELEVATED_ROLES = new Set(["admin"]);
+/**
+ * Map channel actions to global RBAC permissions for elevated access.
+ * Users with the global permission bypass channel-level restrictions.
+ */
+const ACTION_PERMISSION_MAP: Partial<Record<ChannelAction, PermissionKey>> = {
+  delete_message: "chat.delete_messages",
+  manage_members: "chat.manage_channels",
+  edit_channel: "chat.manage_channels",
+  archive_channel: "chat.manage_channels",
+};
 
 export function canPerformChannelAction(
   action: ChannelAction,
@@ -38,8 +52,14 @@ export function canPerformChannelAction(
   // Not a member of the channel → no actions allowed
   if (!channelMemberRole) return false;
 
-  // Elevated global roles can always act
-  if (userRole && ELEVATED_ROLES.has(userRole)) return true;
+  // Check global RBAC: admin (founder+diretoria) can always act.
+  // Also checks specific permissions (e.g. lider with chat.manage_channels).
+  const globalPerm = ACTION_PERMISSION_MAP[action];
+  if (globalPerm && hasPermission(userRole as RoleSlug | null, globalPerm)) {
+    return true;
+  }
+  // admin role always has full channel access
+  if (userRole === "admin") return true;
 
   const isChannelAdmin = channelMemberRole === "admin";
 

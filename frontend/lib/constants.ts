@@ -345,7 +345,8 @@ export const DEMAND_BOARD_COLUMNS = [
 
 // Navigation items for the sidebar
 export const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "layout-dashboard", module: "dashboard" },
+  { href: "/servicos", label: "Hub de Servicos", icon: "apps", module: "dashboard" },
+  { href: "/dashboard", label: "TBO HUB", icon: "layout-dashboard", module: "dashboard" },
   { href: "/projetos", label: "Projetos", icon: "folder-kanban", module: "projetos" },
   { href: "/tarefas", label: "Minhas Tarefas", icon: "list-checks", module: "tarefas" },
   { href: "/pessoas", label: "Pessoas", icon: "users", module: "pessoas" },
@@ -355,9 +356,10 @@ export const NAV_ITEMS = [
   { href: "/contratos", label: "Contratos", icon: "file-text", module: "contratos" },
   { href: "/comercial", label: "Comercial", icon: "briefcase", module: "comercial" },
   { href: "/mercado", label: "Mercado", icon: "map-pin", module: "mercado" },
-  { href: "/okrs", label: "OKRs", icon: "target", module: "okrs" },
+  { href: "/cultura/okrs", label: "OKRs", icon: "target", module: "okrs" },
   { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
   { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura" },
+  { href: "/rewards", label: "Rewards", icon: "gift", module: "cultura" },
   { href: "/marketing", label: "Marketing", icon: "speakerphone", module: "marketing" },
   { href: "/relatorios", label: "Relatórios", icon: "bar-chart-3", module: "relatorios" },
   { href: "/alerts", label: "Alertas", icon: "bell", module: "alerts" },
@@ -426,15 +428,21 @@ export const CULTURA_CATEGORIES = {
 
 export type CulturaCategoryKey = keyof typeof CULTURA_CATEGORIES;
 
-// ─── Cultura internal sidebar navigation ─────────────────────────────
+// ─── TBO Culture hub sidebar navigation ─────────────────────────────
 export const CULTURA_NAV_ITEMS = [
-  { href: "/cultura/valores-pilares", label: "Valores & Pilares", icon: "heart" },
+  { href: "/cultura/pilares", label: "Valores & Pilares", icon: "heart" },
   { href: "/cultura/rituais", label: "Rituais", icon: "repeat" },
   { href: "/cultura/reconhecimentos", label: "Reconhecimentos", icon: "award" },
   { href: "/cultura/recompensas", label: "Recompensas", icon: "gift" },
+  { href: "/cultura/okrs", label: "OKRs", icon: "target" },
+  { href: "/cultura/conhecimento", label: "Conhecimento", icon: "book-marked" },
+  { href: "/cultura/blog", label: "Blog", icon: "article" },
+  { href: "/cultura/decisoes", label: "Decisões", icon: "scale" },
   { href: "/cultura/academy", label: "TBO Academy", icon: "school" },
   { href: "/cultura/calendario-rh", label: "Calendário RH", icon: "calendar-heart" },
   { href: "/cultura/pesquisa-clima", label: "Pesquisa de Clima", icon: "clipboard-check" },
+  { href: "/cultura/diagnostico", label: "Diagnóstico", icon: "stethoscope" },
+  { href: "/cultura/analytics", label: "Analytics", icon: "chart-bar", min_role: "admin" as const },
 ] as const;
 
 // ─── TBO Company Values ─────────────────────────────────────────────
@@ -566,7 +574,20 @@ export const TAREFAS_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/tarefas/todas", label: "Todas as Tarefas", icon: "list-check" },
 ] as const;
 
-export const PROJETOS_NAV_ITEMS: readonly SubNavItem[] = [] as const;
+export const PROJETOS_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/projetos", label: "Visao Geral", icon: "home" },
+  { href: "/projetos/board", label: "Board", icon: "layout-kanban" },
+  { href: "/projetos/lista", label: "Lista", icon: "list" },
+  { href: "/projetos/gantt", label: "Gantt", icon: "chart-gantt" },
+  { href: "/projetos/timeline", label: "Timeline", icon: "clock" },
+  { href: "/projetos/calendario", label: "Calendario", icon: "calendar" },
+  { href: "/projetos/portfolio", label: "Portfolio", icon: "chart-pie" },
+  { href: "/projetos/workload", label: "Workload", icon: "users" },
+  { href: "/projetos/arquivos", label: "Arquivos", icon: "folder" },
+  { href: "/projetos/fluxo-3d", label: "Fluxo 3D", icon: "cube" },
+  { href: "/projetos/templates", label: "Templates", icon: "copy" },
+  { href: "/projetos/configuracoes", label: "Configuracoes", icon: "settings", min_role: "admin" },
+] as const;
 
 export const PESSOAS_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/pessoas/colaboradores", label: "Colaboradores", icon: "users" },
@@ -600,24 +621,18 @@ export const COMERCIAL_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/comercial/servicos", label: "Serviços", icon: "package" },
   { href: "/comercial/precificacao", label: "Precificação", icon: "calculator" },
   { href: "/comercial/atividades", label: "Atividades", icon: "activity" },
+  { href: "/comercial/demandas", label: "Demandas", icon: "inbox" },
   { href: "/comercial/relatorios", label: "Relatórios", icon: "bar-chart-3" },
 ] as const;
 
-export const CLIENTES_NAV_ITEMS: readonly SubNavItem[] = [
-  { href: "/clientes/empresas", label: "Empresas", icon: "building-2" },
-  { href: "/clientes/contatos", label: "Contatos", icon: "contact" },
-  { href: "/clientes/projetos", label: "Projetos do Cliente", icon: "folder-kanban" },
-  { href: "/clientes/documentos", label: "Documentos", icon: "file-text" },
-  { href: "/clientes/configuracoes", label: "Configurações", icon: "settings" },
-] as const;
 
 export const OKRS_NAV_ITEMS: readonly SubNavItem[] = [
-  { href: "/okrs/company", label: "Company OKRs", icon: "building" },
-  { href: "/okrs/teams", label: "Teams", icon: "users" },
-  { href: "/okrs/individuais", label: "Individuais", icon: "user" },
-  { href: "/okrs/check-ins", label: "Check-ins", icon: "check-circle" },
-  { href: "/okrs/dashboard", label: "Dashboard", icon: "bar-chart-3" },
-  { href: "/okrs/configuracoes", label: "Configurações", icon: "settings" },
+  { href: "/cultura/okrs/company", label: "Company OKRs", icon: "building" },
+  { href: "/cultura/okrs/teams", label: "Teams", icon: "users" },
+  { href: "/cultura/okrs/individuais", label: "Individuais", icon: "user" },
+  { href: "/cultura/okrs/check-ins", label: "Check-ins", icon: "check-circle" },
+  { href: "/cultura/okrs/dashboard", label: "Dashboard", icon: "bar-chart-3" },
+  { href: "/cultura/okrs/configuracoes", label: "Configurações", icon: "settings" },
 ] as const;
 
 export const MERCADO_NAV_ITEMS: readonly SubNavItem[] = [
@@ -669,7 +684,6 @@ export const MARKETING_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/marketing/conteudo", label: "Conteúdo", icon: "pencil" },
   { href: "/marketing/email-studio", label: "Email Studio", icon: "mail" },
   { href: "/marketing/redes-sociais", label: "Redes Sociais", icon: "brand-instagram" },
-  { href: "/blog", label: "Blog", icon: "article" },
   { href: "/marketing/analytics", label: "Analytics", icon: "chart-bar", min_role: "admin" },
 ] as const;
 
@@ -708,24 +722,24 @@ export const ATIVOS_NAV_ITEMS: readonly SubNavItem[] = [
 
 // ─── Base de Conhecimento ─────────────────────────────────────────
 export const SOPS_NAV_ITEMS: readonly SubNavItem[] = [
-  { href: "/conhecimento/sops/digital-3d", label: "Digital 3D", icon: "cube" },
-  { href: "/conhecimento/sops/branding", label: "Branding", icon: "palette" },
-  { href: "/conhecimento/sops/marketing", label: "Marketing", icon: "speakerphone" },
-  { href: "/conhecimento/sops/audiovisual", label: "Audiovisual", icon: "video" },
-  { href: "/conhecimento/sops/gamificacao", label: "Gamificação", icon: "device-gamepad-2" },
-  { href: "/conhecimento/sops/operacoes", label: "Operações", icon: "settings" },
-  { href: "/conhecimento/sops/atendimento", label: "Atendimento", icon: "headset" },
-  { href: "/conhecimento/sops/comercial", label: "Comercial", icon: "chart-line" },
-  { href: "/conhecimento/sops/financeiro", label: "Financeiro", icon: "currency-dollar" },
-  { href: "/conhecimento/sops/recursos-humanos", label: "RH", icon: "users" },
-  { href: "/conhecimento/sops/relacionamentos", label: "Relacionamentos", icon: "heart-handshake" },
-  { href: "/conhecimento/sops/politicas", label: "Políticas", icon: "shield-check" },
+  { href: "/cultura/conhecimento/sops/digital-3d", label: "Digital 3D", icon: "cube" },
+  { href: "/cultura/conhecimento/sops/branding", label: "Branding", icon: "palette" },
+  { href: "/cultura/conhecimento/sops/marketing", label: "Marketing", icon: "speakerphone" },
+  { href: "/cultura/conhecimento/sops/audiovisual", label: "Audiovisual", icon: "video" },
+  { href: "/cultura/conhecimento/sops/gamificacao", label: "Gamificação", icon: "device-gamepad-2" },
+  { href: "/cultura/conhecimento/sops/operacoes", label: "Operações", icon: "settings" },
+  { href: "/cultura/conhecimento/sops/atendimento", label: "Atendimento", icon: "headset" },
+  { href: "/cultura/conhecimento/sops/comercial", label: "Comercial", icon: "chart-line" },
+  { href: "/cultura/conhecimento/sops/financeiro", label: "Financeiro", icon: "currency-dollar" },
+  { href: "/cultura/conhecimento/sops/recursos-humanos", label: "RH", icon: "users" },
+  { href: "/cultura/conhecimento/sops/relacionamentos", label: "Relacionamentos", icon: "heart-handshake" },
+  { href: "/cultura/conhecimento/sops/politicas", label: "Políticas", icon: "shield-check" },
 ] as const;
 
 export const KNOWLEDGE_BASE_NAV_ITEMS = {
   sops: SOPS_NAV_ITEMS,
-  templates: { href: "/conhecimento/templates", label: "Templates", icon: "copy" },
-  guias: { href: "/conhecimento/guias", label: "Guias & Processos", icon: "map" },
+  templates: { href: "/cultura/conhecimento/templates", label: "Templates", icon: "copy" },
+  guias: { href: "/cultura/conhecimento/guias", label: "Guias & Processos", icon: "map" },
 } as const;
 
 export const WEBSITE_ADMIN_NAV_ITEMS: readonly SubNavItem[] = [

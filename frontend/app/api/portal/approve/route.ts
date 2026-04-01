@@ -45,10 +45,10 @@ export async function POST(request: Request) {
 
     // 2. Validate task belongs to this project and requires approval
     const { data: task } = await supabase
-      .from("os_tasks")
+      .from("os_tasks" as any)
       .select("id, project_id, requires_client_approval")
       .eq("id", body.taskId)
-      .single();
+      .single() as { data: { id: string; project_id: string; requires_client_approval: boolean } | null };
 
     if (!task || task.project_id !== project.id) {
       return NextResponse.json(
@@ -66,12 +66,12 @@ export async function POST(request: Request) {
 
     // 3. Update approval fields
     const { error: updateError } = await supabase
-      .from("os_tasks")
+      .from("os_tasks" as any)
       .update({
         client_approval_status: body.status,
         client_approval_comment: body.comment ?? null,
         client_approval_at: new Date().toISOString(),
-      } as never)
+      })
       .eq("id", body.taskId);
 
     if (updateError) {

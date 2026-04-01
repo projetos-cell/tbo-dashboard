@@ -58,15 +58,22 @@ export async function generateProjectCode(
 }
 
 export async function getProjects(
-  supabase: SupabaseClient<Database>
-): Promise<ProjectRow[]> {
-  const { data, error } = await supabase
+  supabase: SupabaseClient<Database>,
+  opts?: { page?: number; pageSize?: number }
+): Promise<{ data: ProjectRow[]; count: number }> {
+  const page = opts?.page ?? 0;
+  const pageSize = opts?.pageSize ?? 500;
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from("projects")
-    .select(FULL_COLS)
-    .order("name");
+    .select(FULL_COLS, { count: "exact" })
+    .order("name")
+    .range(from, to);
 
   if (error) throw error;
-  return data ?? [];
+  return { data: data ?? [], count: count ?? 0 };
 }
 
 export async function getProjectById(

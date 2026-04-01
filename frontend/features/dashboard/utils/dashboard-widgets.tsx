@@ -18,7 +18,8 @@ export interface WidgetDef {
   /** Human-readable label shown in the widget header */
   label: string;
   /** React component to render */
-  component: ComponentType<Record<string, unknown>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  component: ComponentType<any>;
   /**
    * Key inside the dashboard data object whose value is passed as the
    * widget's primary prop. When `null` the widget receives no props

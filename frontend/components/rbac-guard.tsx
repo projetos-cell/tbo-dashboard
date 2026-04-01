@@ -11,7 +11,7 @@ interface RBACGuardProps {
   minRole?: RoleSlug;
   /** Whitelist of specific roles allowed */
   allowedRoles?: RoleSlug[];
-  /** Where to redirect on access denied. Defaults to "/dashboard" */
+  /** Where to redirect on access denied. Defaults to "/servicos" */
   redirectTo?: string;
   children: React.ReactNode;
 }
@@ -30,7 +30,7 @@ interface RBACGuardProps {
 export function RBACGuard({
   minRole,
   allowedRoles,
-  redirectTo = "/dashboard",
+  redirectTo = "/servicos",
   children,
 }: RBACGuardProps) {
   const role = useAuthStore((s) => s.role);

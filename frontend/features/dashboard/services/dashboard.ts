@@ -51,7 +51,68 @@ export interface FounderDashboardData extends DashboardData {
   deals: DealRow[];
 }
 
+/* ---------- Lider dashboard extended data ---------- */
+
+export interface LiderDashboardData extends DashboardData {
+  okrSnapshots: OkrSnapshot[];
+}
+
 /* ---------- Fetch functions ---------- */
+
+async function fetchOkrSnapshots(
+  supabase: SupabaseClient<Database>,
+): Promise<OkrSnapshot[]> {
+  const cycleRes = await supabase
+    .from("okr_cycles" as never)
+    .select("id")
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+
+  if (!cycleRes.data) return [];
+
+  const objRes = await supabase
+    .from("okr_objectives" as never)
+    .select("id, title, progress, status")
+    .eq("period", (cycleRes.data as Record<string, unknown>).id as string);
+
+  if (!objRes.data) return [];
+
+  const objectives = objRes.data as Array<{
+    id: string;
+    title: string;
+    progress: number;
+    status: string | null;
+  }>;
+
+  const snapshots: OkrSnapshot[] = [];
+  for (const obj of objectives) {
+    const krRes = await supabase
+      .from("okr_key_results" as never)
+      .select("id, current_value, target_value, start_value")
+      .eq("objective_id", obj.id);
+    const krs = (krRes.data ?? []) as Array<{
+      id: string;
+      current_value: number;
+      target_value: number;
+      start_value: number | null;
+    }>;
+    const completed = krs.filter((kr) => {
+      const start = kr.start_value ?? 0;
+      const range = kr.target_value - start;
+      return range > 0 && (kr.current_value ?? start) >= kr.target_value;
+    }).length;
+    snapshots.push({
+      objectiveId: obj.id,
+      objectiveTitle: obj.title,
+      progress: obj.progress ?? 0,
+      status: obj.status ?? "on_track",
+      keyResultsCount: krs.length,
+      keyResultsCompleted: completed,
+    });
+  }
+  return snapshots;
+}
 
 export async function getDashboardData(
   supabase: SupabaseClient<Database>,
@@ -94,55 +155,7 @@ export async function getFounderDashboardData(
     .order("updated_at", { ascending: false, nullsFirst: false });
   const deals = (dealsRes.data ?? []) as DealRow[];
 
-  // Fetch OKR objectives + key results for active cycle
-  const cycleRes = await supabase
-    .from("okr_cycles" as never)
-    .select("id")
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  let okrSnapshots: OkrSnapshot[] = [];
-  if (cycleRes.data) {
-    const objRes = await supabase
-      .from("okr_objectives" as never)
-      .select("id, title, progress, status")
-      .eq("period", (cycleRes.data as Record<string, unknown>).id as string);
-
-    if (objRes.data) {
-      const objectives = objRes.data as Array<{
-        id: string;
-        title: string;
-        progress: number;
-        status: string | null;
-      }>;
-      for (const obj of objectives) {
-        const krRes = await supabase
-          .from("okr_key_results" as never)
-          .select("id, current_value, target_value, start_value")
-          .eq("objective_id", obj.id);
-        const krs = (krRes.data ?? []) as Array<{
-          id: string;
-          current_value: number;
-          target_value: number;
-          start_value: number | null;
-        }>;
-        const completed = krs.filter((kr) => {
-          const start = kr.start_value ?? 0;
-          const range = kr.target_value - start;
-          return range > 0 && (kr.current_value ?? start) >= kr.target_value;
-        }).length;
-        okrSnapshots.push({
-          objectiveId: obj.id,
-          objectiveTitle: obj.title,
-          progress: obj.progress ?? 0,
-          status: obj.status ?? "on_track",
-          keyResultsCount: krs.length,
-          keyResultsCompleted: completed,
-        });
-      }
-    }
-  }
+  const okrSnapshots = await fetchOkrSnapshots(supabase);
 
   // Build alerts
   const now = new Date().toISOString().split("T")[0];
@@ -212,6 +225,16 @@ export async function getFounderDashboardData(
       a.severity === "high" && b.severity !== "high" ? -1 : 0
     ),
   };
+}
+
+export async function getLiderDashboardData(
+  supabase: SupabaseClient<Database>,
+): Promise<LiderDashboardData> {
+  const [baseData, okrSnapshots] = await Promise.all([
+    getDashboardData(supabase),
+    fetchOkrSnapshots(supabase),
+  ]);
+  return { ...baseData, okrSnapshots };
 }
 
 export function computeKPIs(data: DashboardData): DashboardKPIs {

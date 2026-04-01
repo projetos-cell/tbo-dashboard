@@ -29,6 +29,7 @@ interface MyTasksTableHeaderProps {
   sortDirection?: "asc" | "desc";
   onSort?: (sortBy: string, direction: "asc" | "desc") => void;
   onResizeColumn?: (columnId: string, width: number) => void;
+  onLiveResize?: (columnId: string, width: number) => void;
   onReorderColumns?: (columns: ResolvedColumn[]) => void;
   isAllSelected?: boolean;
   isIndeterminate?: boolean;
@@ -41,6 +42,7 @@ export function MyTasksTableHeader({
   sortDirection,
   onSort,
   onResizeColumn,
+  onLiveResize,
   onReorderColumns,
   isAllSelected,
   isIndeterminate,
@@ -71,10 +73,10 @@ export function MyTasksTableHeader({
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <TableHeader className="sticky top-0 z-10 bg-background">
-        <TableRow className="hover:bg-transparent border-b-2">
+      <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+        <TableRow className="hover:bg-transparent border-b border-border/30">
           {/* Select-all checkbox */}
-          <TableHead className="w-9 px-2 border-r border-border/40">
+          <TableHead className="w-9 px-2">
             <Checkbox
               checked={isIndeterminate ? "indeterminate" : (isAllSelected ?? false)}
               onCheckedChange={onToggleAll}
@@ -97,6 +99,7 @@ export function MyTasksTableHeader({
                 sortDirection={sortDirection}
                 onSort={onSort}
                 onResizeColumn={onResizeColumn}
+                onLiveResize={onLiveResize}
                 dndEnabled={!!onReorderColumns}
               />
             ))}

@@ -15,6 +15,7 @@ import {
   IconCheck,
   IconArrowUp,
   IconArrowDown,
+  IconX,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import {
@@ -24,7 +25,7 @@ import {
   GROUP_OPTIONS,
 } from "./my-tasks-filter-panel";
 
-// ─── Component ────────────────────────────────────────────────
+type ViewMode = "list" | "board" | "calendar";
 
 interface MyTasksToolbarProps {
   sortBy: string;
@@ -32,6 +33,7 @@ interface MyTasksToolbarProps {
   groupBy: string;
   filters: Record<string, unknown>;
   onUpdate: (updates: Record<string, unknown>) => void;
+  viewMode?: ViewMode;
 }
 
 export function MyTasksToolbar({
@@ -40,6 +42,7 @@ export function MyTasksToolbar({
   groupBy,
   filters,
   onUpdate,
+  viewMode = "list",
 }: MyTasksToolbarProps) {
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -50,22 +53,32 @@ export function MyTasksToolbar({
   const isSortActive = sortBy !== "manual";
   const isGroupActive = groupBy !== "section";
 
+  // Board view: sort/group are locked to section-based
+  const sortDisabled = viewMode === "board";
+  const groupDisabled = viewMode === "board" || viewMode === "calendar";
+
+  const totalActive =
+    (isSortActive ? 1 : 0) +
+    activeFilterCount +
+    (isGroupActive ? 1 : 0);
+
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       {/* ─── Sort ─── */}
       <Popover open={sortOpen} onOpenChange={setSortOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
             size="sm"
+            disabled={sortDisabled}
             className={cn(
               "h-7 gap-1.5 text-xs font-medium",
-              isSortActive && "text-primary"
+              isSortActive && !sortDisabled && "text-primary"
             )}
           >
             <IconArrowsUpDown className="h-3.5 w-3.5" />
             Ordenar
-            {isSortActive && (
+            {isSortActive && !sortDisabled && (
               <Badge variant="secondary" className="ml-0.5 h-4 px-1 text-[9px]">
                 1
               </Badge>
@@ -153,14 +166,15 @@ export function MyTasksToolbar({
           <Button
             variant="ghost"
             size="sm"
+            disabled={groupDisabled}
             className={cn(
               "h-7 gap-1.5 text-xs font-medium",
-              isGroupActive && "text-primary"
+              isGroupActive && !groupDisabled && "text-primary"
             )}
           >
             <IconLayoutRows className="h-3.5 w-3.5" />
             Agrupar
-            {isGroupActive && (
+            {isGroupActive && !groupDisabled && (
               <Badge variant="secondary" className="ml-0.5 h-4 px-1 text-[9px]">
                 1
               </Badge>
@@ -196,6 +210,26 @@ export function MyTasksToolbar({
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* ─── Clear all ─── */}
+      {totalActive > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+          onClick={() =>
+            onUpdate({
+              sort_by: "manual",
+              sort_direction: "asc",
+              group_by: "section",
+              filters: {},
+            })
+          }
+        >
+          <IconX className="h-3 w-3" />
+          Limpar
+        </Button>
+      )}
     </div>
   );
 }

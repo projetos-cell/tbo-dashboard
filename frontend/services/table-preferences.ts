@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 import type { ColumnPref, SortPref, TablePreference } from "@/lib/column-types";
+import type { TableDensity } from "@/components/shared/table-density-toggle";
 
 /* ------------------------------------------------------------------ */
 /* Get preferences for a specific table                                */
@@ -9,6 +10,7 @@ import type { ColumnPref, SortPref, TablePreference } from "@/lib/column-types";
 export interface TablePrefsData {
   columns: ColumnPref[];
   sort?: SortPref | null;
+  density?: TableDensity | null;
 }
 
 export async function getTablePreferences(
@@ -18,7 +20,7 @@ export async function getTablePreferences(
 ): Promise<TablePrefsData | null> {
   const { data, error } = await supabase
     .from("user_table_preferences" as never)
-    .select("columns, sort")
+    .select("columns, sort, density")
     .eq("user_id", userId)
     .eq("table_id", tableId)
     .maybeSingle();
@@ -28,6 +30,7 @@ export async function getTablePreferences(
   return {
     columns: row.columns as ColumnPref[],
     sort: (row.sort as SortPref) ?? null,
+    density: (row.density as TableDensity) ?? null,
   };
 }
 
@@ -51,6 +54,7 @@ export async function saveTablePreferences(
         table_id: tableId,
         columns: prefs.columns,
         sort: prefs.sort ?? null,
+        density: prefs.density ?? null,
       } as never,
       { onConflict: "tenant_id,user_id,table_id" }
     );

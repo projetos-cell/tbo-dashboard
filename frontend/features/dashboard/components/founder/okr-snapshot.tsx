@@ -39,7 +39,7 @@ export function OkrSnapshotCard({ snapshots }: Props) {
           OKRs Ciclo Ativo
         </CardTitle>
         <Link
-          href="/okrs"
+          href="/cultura/okrs"
           className="text-sm text-gray-500 hover:underline"
         >
           Ver OKRs

@@ -26,17 +26,19 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, href, accent, s
   return (
     <Link
       href={href}
-      className={`group flex items-center gap-3 rounded-2xl border p-4 transition-all hover:shadow-md ${
-        accent ? "border-red-200 bg-red-50/50 dark:border-red-900/30 dark:bg-red-950/10" : "bg-card"
+      className={`group flex items-center gap-3 rounded-lg border p-3 transition-all hover:bg-muted/40 ${
+        accent
+          ? "border-red-200/60 bg-red-50/30 dark:border-red-900/30 dark:bg-red-950/10"
+          : "border-border/30"
       }`}
     >
-      <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
-        <Icon className={`size-5 ${iconColor}`} />
+      <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
+        <Icon className={`size-4 ${iconColor}`} />
       </div>
       <div className="min-w-0">
-        <p className="text-2xl font-bold tracking-tight">{value}</p>
-        <p className="text-xs text-muted-foreground truncate">{label}</p>
-        {subtitle && <p className="text-[10px] text-muted-foreground/70">{subtitle}</p>}
+        <p className="text-xl font-bold tracking-tight tabular-nums">{value}</p>
+        <p className="text-[10px] text-muted-foreground/60 truncate">{label}</p>
+        {subtitle && <p className="text-[10px] text-muted-foreground/40">{subtitle}</p>}
       </div>
     </Link>
   );

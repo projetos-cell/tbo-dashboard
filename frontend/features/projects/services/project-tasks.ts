@@ -5,7 +5,7 @@ import type { TaskStatusKey } from "@/lib/constants";
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
 const TASK_COLS =
-  "id,tenant_id,project_id,section_id,parent_id,title,description,status,assignee_id,assignee_name,start_date,due_date,completed_at,priority,order_index,is_completed,legacy_demand_id,created_by,created_at,updated_at";
+  "id,tenant_id,project_id,section_id,parent_id,title,description,status,assignee_id,assignee_name,start_date,due_date,completed_at,priority,order_index,is_completed,is_milestone,legacy_demand_id,notion_page_id,created_by,created_at,updated_at";
 
 /** Fetch ALL os_tasks for a project (parents + subtasks) in one query. */
 export async function getProjectTasks(
@@ -19,7 +19,7 @@ export async function getProjectTasks(
     .order("order_index", { ascending: true });
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as TaskRow[];
 }
 
 /** Fetch os_sections for a project, ordered by order_index. */

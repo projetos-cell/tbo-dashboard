@@ -18,6 +18,8 @@ import {
   IconArrowsUpDown,
 } from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
+import { useTablePreferences } from "@/hooks/use-table-preferences";
+import { DENSITY_ROW_PADDING } from "@/components/shared";
 import { ContractTableRow } from "./contract-table-row";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
@@ -162,14 +164,22 @@ export function ContractDataTable({
   onInlineUpdate,
 }: ContractDataTableProps) {
   const [deleteTarget, setDeleteTarget] = useState<ContractRow | null>(null);
-  const [sort, setSort] = useState<SortState | null>(null);
+  const { sortPref, saveSort, density } = useTablePreferences("contratos");
+  const rowPadding = DENSITY_ROW_PADDING[density];
+
+  // Map SortPref (hook) → SortState (local type)
+  const sort: SortState | null = sortPref
+    ? { column: sortPref.columnId as SortColumn, direction: sortPref.direction }
+    : null;
 
   function handleSort(column: SortColumn) {
-    setSort((prev) => {
-      if (prev?.column !== column) return { column, direction: "asc" };
-      if (prev.direction === "asc") return { column, direction: "desc" };
-      return null;
-    });
+    if (sort?.column !== column) {
+      saveSort({ columnId: column, direction: "asc" });
+    } else if (sort.direction === "asc") {
+      saveSort({ columnId: column, direction: "desc" });
+    } else {
+      saveSort(null);
+    }
   }
 
   const sorted = useMemo(() => {
@@ -219,7 +229,7 @@ export function ContractDataTable({
               </span>{" "}
               ({sort.direction === "asc" ? "A → Z" : "Z → A"})
             </span>
-            <button onClick={() => setSort(null)} className="text-xs text-[#f97316] hover:text-[#ea580c] font-medium">
+            <button onClick={() => saveSort(null)} className="text-xs text-[#f97316] hover:text-[#ea580c] font-medium">
               Limpar
             </button>
           </div>
@@ -236,6 +246,7 @@ export function ContractDataTable({
               onSelect={onSelect}
               onDeleteRequest={setDeleteTarget}
               onInlineUpdate={onInlineUpdate}
+              rowPadding={rowPadding}
             />
           ))}
         </div>

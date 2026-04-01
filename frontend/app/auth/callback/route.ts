@@ -82,7 +82,7 @@ async function ensureProfileExists(userId: string, userEmail: string, fullName: 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = searchParams.get("next") ?? "/servicos";
 
   if (code) {
     const cookieStore = await cookies();

@@ -88,6 +88,7 @@ interface ContractTableRowProps {
   onSelect: (contract: ContractRow) => void;
   onDeleteRequest: (contract: ContractRow) => void;
   onInlineUpdate?: (id: string, updates: Partial<ContractRow>) => void;
+  rowPadding?: string;
 }
 
 // ─── ContractTableRow ─────────────────────────────────────────────────
@@ -99,6 +100,7 @@ export function ContractTableRow({
   onSelect,
   onDeleteRequest,
   onInlineUpdate,
+  rowPadding = "py-3",
 }: ContractTableRowProps) {
   const statusCfg =
     CONTRACT_STATUS[contract.status as ContractStatusKey] ?? {
@@ -112,7 +114,7 @@ export function ContractTableRow({
 
   return (
     <div
-      className="group px-4 py-3 transition-colors hover:bg-muted/20 cursor-pointer"
+      className={`group px-4 ${rowPadding} transition-colors hover:bg-muted/20 cursor-pointer`}
       onClick={() => onSelect(contract)}
     >
       {/* Desktop layout */}

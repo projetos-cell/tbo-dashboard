@@ -3,8 +3,6 @@
 import { Suspense, useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { TaskDetailSheet } from "@/features/tasks/components/task-detail-sheet";
 import { TaskForm } from "@/features/tasks/components/task-form";
 import { MyTasksListView } from "@/features/tasks/components/my-tasks-list-view";
@@ -35,9 +33,7 @@ import {
   IconLayoutKanban,
   IconList,
   IconCalendar,
-  IconCalendarDue,
 } from "@tabler/icons-react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -52,7 +48,25 @@ const VIEWS = [
 export default function MinhasTarefasPage() {
   return (
     <RequireRole module="tarefas">
-      <Suspense fallback={<div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-10 w-full" />))}</div>}>
+      <Suspense
+        fallback={
+          <div className="flex flex-col gap-0">
+            <div className="flex items-center justify-between py-3 border-b">
+              <Skeleton className="h-6 w-36" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-7 w-48 rounded-md" />
+                <Skeleton className="h-8 w-28 rounded-md" />
+              </div>
+            </div>
+            <div className="space-y-px pt-4">
+              <Skeleton className="h-8 w-40 mb-2" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          </div>
+        }
+      >
         <MinhasTarefasContent />
       </Suspense>
     </RequireRole>
@@ -63,13 +77,12 @@ function MinhasTarefasContent() {
   const { taskId, openTask, closeTask } = useTaskDetailParam();
   const [showCreate, setShowCreate] = useState(false);
 
-  // Wrapper: list/board views call onSelect with TaskRow, we extract the id
   const handleSelectTask = useCallback(
     (task: TaskRow) => openTask(task.id),
     [openTask]
   );
 
-  // Preferences (persisted per user)
+  // Preferences
   const { data: prefs } = useMyTasksPreferences();
   const updatePrefs = useUpdateMyTasksPreferences();
 
@@ -81,14 +94,9 @@ function MinhasTarefasContent() {
   const filters = (prefs?.filters as Record<string, unknown>) ?? {};
   const columnPrefs = (prefs?.columns as ColumnPref[] | undefined) ?? [];
 
-  const setViewMode = (mode: ViewMode) => {
-    updatePrefs.mutate({ view_mode: mode });
-  };
-  const setShowCompleted = (show: boolean) => {
-    updatePrefs.mutate({ show_completed: show });
-  };
+  const setViewMode = (mode: ViewMode) => updatePrefs.mutate({ view_mode: mode });
+  const setShowCompleted = (show: boolean) => updatePrefs.mutate({ show_completed: show });
 
-  // Resolve columns from prefs
   const allColumns = useMemo(
     () => resolveColumns(columnPrefs, MY_TASKS_COLUMNS),
     [columnPrefs]
@@ -98,25 +106,19 @@ function MinhasTarefasContent() {
     [allColumns, columnPrefs]
   );
 
-  // Column resize handler
   const handleResizeColumn = useCallback(
     (columnId: string, width: number) => {
-      const existing = columnPrefs.length > 0 ? [...columnPrefs] : allColumns.map((c) => ({
-        id: c.id,
-        visible: true,
-        width: c.width,
-      }));
-
+      const existing =
+        columnPrefs.length > 0
+          ? [...columnPrefs]
+          : allColumns.map((c) => ({ id: c.id, visible: true, width: c.width }));
       const idx = existing.findIndex((p) => p.id === columnId);
-      if (idx >= 0) {
-        existing[idx] = { ...existing[idx], width };
-      }
+      if (idx >= 0) existing[idx] = { ...existing[idx], width };
       updatePrefs.mutate({ columns: existing });
     },
     [columnPrefs, allColumns, updatePrefs]
   );
 
-  // Sort handler
   const handleSort = useCallback(
     (newSortBy: string, direction: "asc" | "desc") => {
       updatePrefs.mutate({ sort_by: newSortBy, sort_direction: direction });
@@ -124,7 +126,6 @@ function MinhasTarefasContent() {
     [updatePrefs]
   );
 
-  // Column reorder handler (from header DnD)
   const handleReorderColumns = useCallback(
     (reordered: typeof allColumns) => {
       const newPrefs: ColumnPref[] = reordered.map((c) => ({
@@ -137,194 +138,133 @@ function MinhasTarefasContent() {
     [updatePrefs]
   );
 
-  // Column config handler
   const handleColumnUpdate = useCallback(
-    (prefs: ColumnPref[]) => {
-      updatePrefs.mutate({ columns: prefs });
-    },
+    (prefs: ColumnPref[]) => updatePrefs.mutate({ columns: prefs }),
     [updatePrefs]
   );
 
-  // Toolbar update handler
   const handleToolbarUpdate = useCallback(
-    (updates: Record<string, unknown>) => {
-      updatePrefs.mutate(updates);
-    },
+    (updates: Record<string, unknown>) => updatePrefs.mutate(updates),
     [updatePrefs]
   );
 
   // Data
   const { data: tasks, isLoading, error, refetch } = useMyTasks(showCompleted);
   const { data: sections } = useMyTasksSections();
-
-  // Realtime subscription
   useMyTasksRealtime();
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Minhas Tarefas</h1>
-          <p className="text-sm text-gray-500">
-            Organize e acompanhe suas tarefas pessoais
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Show completed toggle */}
-          <div className="flex items-center gap-2">
-            <Switch
-              id="show-completed"
-              checked={showCompleted}
-              onCheckedChange={setShowCompleted}
-            />
-            <Label htmlFor="show-completed" className="text-xs text-gray-500">
-              Concluídas
-            </Label>
-          </div>
-
-          {/* View toggle */}
-          <div className="flex items-center rounded-lg border bg-muted/30 p-0.5">
+    <div className="-mx-4 md:-mx-8 lg:-mx-12 -my-6">
+    <div className="min-h-[calc(100dvh-64px)] p-5 flex flex-col gap-0">
+      {/* ── Gradient Header Bar ─────────────────────────────── */}
+      <div className="relative overflow-hidden p-4 mb-4" style={{ background: "linear-gradient(135deg, #1a1410 0%, #2d1810 50%, #c45a1a 100%)", borderRadius: "16px", boxShadow: "0 8px 32px rgba(196,90,26,0.15)" }}>
+        <div className="absolute inset-0 opacity-[0.04]"><div className="absolute -top-8 -right-8 size-32 border-[2px] border-white rounded-full" /><div className="absolute bottom-0 left-10 size-16 border-[2px] border-white rounded-full" /></div>
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex items-center gap-0.5 rounded-md border border-white/20 bg-white/10 p-0.5">
             {VIEWS.map(({ value, icon: Icon, label }) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setViewMode(value)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  "flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-all",
                   viewMode === value
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-white/20 text-white shadow-sm"
+                    : "text-white/60 hover:text-white/80"
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{label}</span>
+                {label}
               </button>
             ))}
           </div>
-
-          <Button onClick={() => setShowCreate(true)}>
-            <IconPlus className="mr-1.5 h-4 w-4" /> Nova Tarefa
+          <Button size="sm" className="h-8 bg-white/15 hover:bg-white/25 text-white border-white/20" onClick={() => setShowCreate(true)}>
+            <IconPlus className="mr-1.5 h-3.5 w-3.5" />
+            Nova Tarefa
           </Button>
         </div>
       </div>
 
-      {/* Quick group chips (V06) */}
-      {viewMode === "list" && (
-        <div className="flex items-center gap-2">
+      {/* ─── Row 2: Controls ─── */}
+      <div className="flex items-center justify-end border-b pb-2.5">
+        <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => handleToolbarUpdate({ group_by: "due_date", sort_by: "due_date", sort_direction: "asc" })}
+            onClick={() => setShowCompleted(!showCompleted)}
             className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-              groupBy === "due_date"
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              "flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+              showCompleted
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
-            <IconCalendarDue className="size-3.5" />
-            Por prazo
+            <IconSquareCheck className="h-3.5 w-3.5" />
+            Concluídas
           </button>
-          <button
-            type="button"
-            onClick={() => handleToolbarUpdate({ group_by: "section", sort_by: "manual", sort_direction: "asc" })}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-              groupBy === "section"
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            <IconList className="size-3.5" />
-            Por seção
-          </button>
-          <button
-            type="button"
-            onClick={() => handleToolbarUpdate({ group_by: "project_id", sort_by: "due_date", sort_direction: "asc" })}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-              groupBy === "project_id"
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            Por projeto
-          </button>
-        </div>
-      )}
 
-      {/* Toolbar — Sort / Filter / Group / Columns */}
-      {viewMode === "list" && (
-        <div className="flex items-center gap-1 border-b pb-2">
           <MyTasksToolbar
             sortBy={sortBy}
             sortDirection={sortDirection}
             groupBy={groupBy}
             filters={filters}
             onUpdate={handleToolbarUpdate}
+            viewMode={viewMode}
           />
-          <div className="h-4 w-px bg-border mx-1" />
-          <MyTasksColumnConfig
-            columns={allColumns}
-            columnPrefs={columnPrefs}
-            onUpdate={handleColumnUpdate}
+
+          {viewMode === "list" && (
+            <MyTasksColumnConfig
+              columns={allColumns}
+              columnPrefs={columnPrefs}
+              onUpdate={handleColumnUpdate}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* ─── Content ─── */}
+      <div className="pt-4">
+        {isLoading ? (
+          <div className="space-y-px">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        ) : error ? (
+          <ErrorState message={error.message} onRetry={() => refetch()} />
+        ) : !tasks?.length && !sections?.length ? (
+          <EmptyState
+            icon={IconSquareCheck}
+            title="Nenhuma tarefa atribuída"
+            description="Quando tarefas forem atribuídas a você, elas aparecerão aqui."
+            cta={{
+              label: "Nova Tarefa",
+              onClick: () => setShowCreate(true),
+            }}
           />
-        </div>
-      )}
+        ) : viewMode === "list" ? (
+          <MyTasksListView
+            tasks={tasks ?? []}
+            columns={visibleColumns}
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            groupBy={groupBy}
+            filters={filters}
+            onSelect={handleSelectTask}
+            onSort={handleSort}
+            onResizeColumn={handleResizeColumn}
+            onReorderColumns={handleReorderColumns}
+          />
+        ) : viewMode === "board" ? (
+          <MyTasksBoardView tasks={tasks ?? []} onSelect={handleSelectTask} />
+        ) : (
+          <MyTasksCalendarView tasks={tasks ?? []} onSelect={handleSelectTask} />
+        )}
+      </div>
 
-      {/* Content */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full" />
-          ))}
-        </div>
-      ) : error ? (
-        <ErrorState message={error.message} onRetry={() => refetch()} />
-      ) : !tasks?.length && !sections?.length ? (
-        <EmptyState
-          icon={IconSquareCheck}
-          title="Nenhuma tarefa atribuída"
-          description="Quando tarefas forem atribuídas a você, elas aparecerão aqui organizadas em seções."
-          cta={{
-            label: "Nova Tarefa",
-            onClick: () => setShowCreate(true),
-          }}
-        />
-      ) : viewMode === "list" ? (
-        <MyTasksListView
-          tasks={tasks ?? []}
-          columns={visibleColumns}
-          sortBy={sortBy}
-          sortDirection={sortDirection}
-          groupBy={groupBy}
-          filters={filters}
-          onSelect={handleSelectTask}
-          onSort={handleSort}
-          onResizeColumn={handleResizeColumn}
-          onReorderColumns={handleReorderColumns}
-        />
-      ) : viewMode === "board" ? (
-        <MyTasksBoardView
-          tasks={tasks ?? []}
-          onSelect={handleSelectTask}
-        />
-      ) : (
-        <MyTasksCalendarView
-          tasks={tasks ?? []}
-          onSelect={handleSelectTask}
-        />
-      )}
-
-      {/* Task Detail Sheet (F02 — read-only panel with URL sync) */}
-      <TaskDetailSheet
-        taskId={taskId}
-        open={!!taskId}
-        onClose={closeTask}
-      />
-
-      {/* Task Form */}
+      {/* Detail Sheet + Form */}
+      <TaskDetailSheet taskId={taskId} open={!!taskId} onClose={closeTask} />
       <TaskForm open={showCreate} onOpenChange={setShowCreate} />
+    </div>
     </div>
   );
 }

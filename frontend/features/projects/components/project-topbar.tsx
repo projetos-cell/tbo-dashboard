@@ -77,19 +77,22 @@ type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 // ─── Tab config ──────────────────────────────────────────────────────────────
 
 const TABS = [
-  { key: "overview", label: "Visão Geral", icon: IconLayoutDashboard },
-  { key: "list", label: "Lista", icon: IconList },
-  { key: "board", label: "Board", icon: IconLayoutKanban },
-  { key: "gantt", label: "Gantt", icon: IconChartArrowsVertical },
-  { key: "calendar", label: "Calendário", icon: IconCalendar },
-  { key: "files", label: "Arquivos", icon: IconPaperclip },
-  { key: "updates", label: "Updates", icon: IconSpeakerphone },
-  { key: "activity", label: "Atividade", icon: IconHistory },
-  { key: "dashboard", label: "Dashboard", icon: IconChartBar },
-  { key: "overdue", label: "Atrasadas", icon: IconAlertTriangle },
-  { key: "intake", label: "Intake", icon: IconClipboardList },
-  { key: "settings", label: "Configurações", icon: IconSettings },
-  { key: "portal", label: "Portal do Cliente", icon: IconGlobe },
+  // ── Planejamento ──
+  { key: "overview", label: "Visão Geral", icon: IconLayoutDashboard, group: "planejamento" },
+  { key: "list", label: "Lista", icon: IconList, group: "planejamento" },
+  { key: "board", label: "Board", icon: IconLayoutKanban, group: "planejamento" },
+  { key: "gantt", label: "Gantt", icon: IconChartArrowsVertical, group: "planejamento" },
+  { key: "calendar", label: "Calendário", icon: IconCalendar, group: "planejamento" },
+  // ── Gestão ──
+  { key: "files", label: "Arquivos", icon: IconPaperclip, group: "gestao" },
+  { key: "updates", label: "Updates", icon: IconSpeakerphone, group: "gestao" },
+  { key: "activity", label: "Atividade", icon: IconHistory, group: "gestao" },
+  { key: "dashboard", label: "Dashboard", icon: IconChartBar, group: "gestao" },
+  { key: "overdue", label: "Atrasadas", icon: IconAlertTriangle, group: "gestao" },
+  // ── Admin ──
+  { key: "intake", label: "Intake", icon: IconClipboardList, group: "admin" },
+  { key: "settings", label: "Configurações", icon: IconSettings, group: "admin" },
+  { key: "portal", label: "Portal do Cliente", icon: IconGlobe, group: "admin" },
 ] as const;
 
 export type ProjectTabKey = (typeof TABS)[number]["key"];
@@ -439,17 +442,26 @@ function ProjectTabsBar({
           items={visibleTabs.map((t) => t.key)}
           strategy={horizontalListSortingStrategy}
         >
-          {visibleTabs.map(({ key, label, icon }) => (
-            <SortableTab
-              key={key}
-              tabKey={key}
-              label={label}
-              icon={icon}
-              isActive={activeTab === key}
-              onClick={() => onTabChange(key)}
-              onHide={() => handleHide(key)}
-            />
-          ))}
+          {visibleTabs.map(({ key, label, icon, group }, idx) => {
+            const prevGroup = idx > 0 ? visibleTabs[idx - 1].group : group;
+            const showSep = idx > 0 && group !== prevGroup;
+            return (
+              <>
+                {showSep && (
+                  <div key={`sep-${key}`} className="mx-1 h-4 w-px bg-border/50 shrink-0" />
+                )}
+                <SortableTab
+                  key={key}
+                  tabKey={key}
+                  label={label}
+                  icon={icon}
+                  isActive={activeTab === key}
+                  onClick={() => onTabChange(key)}
+                  onHide={() => handleHide(key)}
+                />
+              </>
+            );
+          })}
         </SortableContext>
       </DndContext>
 

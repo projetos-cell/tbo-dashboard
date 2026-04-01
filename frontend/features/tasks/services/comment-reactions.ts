@@ -11,7 +11,7 @@ export async function getCommentReactions(
   supabase: SupabaseClient<Database>,
   commentId: string,
 ): Promise<ReactionGroup[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("comment_reactions")
     .select("emoji, user_id")
     .eq("comment_id", commentId);
@@ -40,7 +40,7 @@ export async function toggleReaction(
   tenantId: string,
 ): Promise<"added" | "removed"> {
   // Check if reaction exists
-  const { data: existing } = await supabase
+  const { data: existing } = await (supabase as any)
     .from("comment_reactions")
     .select("id")
     .eq("comment_id", commentId)
@@ -49,11 +49,11 @@ export async function toggleReaction(
     .maybeSingle();
 
   if (existing) {
-    await supabase.from("comment_reactions").delete().eq("id", existing.id);
+    await (supabase as any).from("comment_reactions").delete().eq("id", existing.id);
     return "removed";
   }
 
-  const { error } = await supabase.from("comment_reactions").insert({
+  const { error } = await (supabase as any).from("comment_reactions").insert({
     comment_id: commentId,
     user_id: userId,
     emoji,

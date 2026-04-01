@@ -10,10 +10,7 @@ import {
   updateProjectRule,
   deleteProjectRule,
 } from "@/features/projects/services/project-rules";
-import type { Database } from "@/lib/supabase/types";
-
-type ProjectRuleInsert = Database["public"]["Tables"]["project_rules"]["Insert"];
-type ProjectRuleUpdate = Database["public"]["Tables"]["project_rules"]["Update"];
+import type { ProjectRuleInsert, ProjectRuleUpdate } from "@/features/projects/services/project-rules";
 
 export function useProjectRules(projectId: string | undefined) {
   const supabase = createClient();

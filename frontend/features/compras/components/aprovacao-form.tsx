@@ -118,8 +118,7 @@ export function AprovacaoForm({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Form form={form} onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="decisao"
@@ -181,7 +180,6 @@ export function AprovacaoForm({
                 {isPending ? "Registrando..." : "Confirmar"}
               </Button>
             </DialogFooter>
-          </form>
         </Form>
       </DialogContent>
     </Dialog>

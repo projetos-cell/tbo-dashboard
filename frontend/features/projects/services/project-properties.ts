@@ -56,7 +56,7 @@ export async function createPropertyOption(
   input: CreatePropertyOptionInput
 ): Promise<PropertyOption> {
   const { data, error } = await table()
-    .insert({ tenant_id: tenantId, ...input })
+    .insert({ tenant_id: tenantId, ...input } as never)
     .select()
     .single();
 
@@ -69,7 +69,7 @@ export async function updatePropertyOption(
   updates: UpdatePropertyOptionInput
 ): Promise<PropertyOption> {
   const { data, error } = await table()
-    .update(updates)
+    .update(updates as never)
     .eq("id", id)
     .select()
     .single();
@@ -91,7 +91,7 @@ export async function reorderPropertyOptions(
 ): Promise<void> {
   const promises = items.map(({ id, sort_order }) =>
     table()
-      .update({ sort_order })
+      .update({ sort_order } as never)
       .eq("id", id)
   );
   const results = await Promise.all(promises);

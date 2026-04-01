@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import {
   getDashboardData,
   getFounderDashboardData,
+  getLiderDashboardData,
   computeKPIs,
 } from "@/features/dashboard/services/dashboard";
 import { getFounderKPIs } from "@/features/financeiro/services/finance-kpis";
@@ -44,6 +45,18 @@ export function useFounderDashboard() {
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
     refetchInterval: 5 * 60 * 1000,
+  });
+}
+
+export function useLiderDashboard() {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["lider-dashboard", tenantId],
+    queryFn: () => getLiderDashboardData(supabase),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId,
   });
 }
 

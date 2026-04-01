@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
@@ -10,22 +10,18 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskRowContextMenu } from "./task-row-context-menu";
 import { renderCellContent } from "./my-task-table-row-cells";
+import { cn } from "@/lib/utils";
 
-const CELL_BORDER = "border-r border-border/40";
+const CELL_BORDER = "";
 
-function getResponsiveClass(columnId: string): string {
-  switch (columnId) {
-    case "projeto":
-      return "hidden lg:table-cell";
-    case "status":
-    case "prioridade":
-      return "hidden sm:table-cell";
-    case "responsavel":
-      return "hidden md:table-cell";
-    default:
-      return "";
-  }
-}
+const DEFAULT_COLS: ResolvedColumn[] = [
+  { id: "tarefa", label: "Tarefa", width: 0, minWidth: 200, alwaysVisible: true },
+  { id: "prazo", label: "Prazo", width: 110, minWidth: 80, alwaysVisible: false },
+  { id: "projeto", label: "Projeto", width: 140, minWidth: 80, alwaysVisible: false },
+  { id: "status", label: "Status", width: 130, minWidth: 80, alwaysVisible: false },
+  { id: "prioridade", label: "Prioridade", width: 120, minWidth: 80, alwaysVisible: false },
+  { id: "responsavel", label: "Responsável", width: 44, minWidth: 44, alwaysVisible: false },
+];
 
 interface MyTaskTableRowProps {
   task: MyTaskWithSection;
@@ -38,7 +34,7 @@ interface MyTaskTableRowProps {
   onToggle?: () => void;
 }
 
-export function MyTaskTableRow({
+function MyTaskTableRowInner({
   task,
   columns,
   projectName,
@@ -91,46 +87,46 @@ export function MyTaskTableRow({
     !task.is_completed &&
     task.due_date < new Date().toISOString().split("T")[0];
 
-  const defaultCols: ResolvedColumn[] = [
-    { id: "tarefa", label: "Tarefa", width: 0, minWidth: 200, alwaysVisible: true },
-    { id: "prazo", label: "Prazo", width: 110, minWidth: 80, alwaysVisible: false },
-    { id: "projeto", label: "Projeto", width: 140, minWidth: 80, alwaysVisible: false },
-    { id: "status", label: "Status", width: 130, minWidth: 80, alwaysVisible: false },
-    { id: "prioridade", label: "Prioridade", width: 120, minWidth: 80, alwaysVisible: false },
-    { id: "responsavel", label: "Responsável", width: 44, minWidth: 44, alwaysVisible: false },
-  ];
-
-  const visibleCols = columns ?? defaultCols;
+  const visibleCols = columns ?? DEFAULT_COLS;
 
   return (
     <TaskRowContextMenu task={task} onOpenDetail={onClick}>
       <TableRow
         ref={setNodeRef}
         style={style}
-        className={`group h-10 ${isSelected ? "bg-primary/5" : ""} ${isDragOverlay ? "shadow-lg ring-2 ring-primary/20 bg-background" : ""} ${isDragging ? "z-10" : ""}`}
+        className={cn(
+          "group h-11 transition-colors border-b border-border/30 last:border-b-0",
+          isSelected && "bg-primary/5",
+          !isSelected && "hover:bg-muted/40",
+          isDragOverlay && "shadow-lg ring-2 ring-primary/20 bg-background",
+          isDragging && "z-10",
+          overdue && !task.is_completed && "border-l-2 border-l-red-400",
+          task.is_completed && "opacity-40"
+        )}
       >
         {/* Checkbox column */}
-        <TableCell className="w-9 py-0 px-2 border-r border-border/40">
+        <TableCell className="w-9 py-0 px-2">
           <Checkbox
             checked={isSelected ?? false}
             onCheckedChange={(checked) => { if (checked !== "indeterminate") onToggle?.(); }}
             onClick={(e) => e.stopPropagation()}
             aria-label="Selecionar tarefa"
-            className="opacity-0 group-hover:opacity-100 data-[state=checked]:opacity-100 transition-opacity"
+            className="opacity-40 group-hover:opacity-100 data-[state=checked]:opacity-100 transition-opacity"
           />
         </TableCell>
 
         {visibleCols.map((col, idx) => {
           const isLast = idx === visibleCols.length - 1;
           const borderClass = isLast ? "" : CELL_BORDER;
-          const responsiveClass = getResponsiveClass(col.id);
-          const widthStyle =
-            col.id === "tarefa" ? {} : { width: col.width, minWidth: col.minWidth };
+          const widthStyle: React.CSSProperties =
+            col.id === "tarefa"
+              ? {}
+              : { width: `var(--col-${col.id}-w, ${col.width}px)`, minWidth: col.minWidth };
 
           return (
             <TableCell
               key={col.id}
-              className={`${borderClass} ${responsiveClass} py-0 px-2`}
+              className={`${borderClass} py-0 px-2 overflow-hidden`}
               style={widthStyle}
             >
               {renderCellContent(col.id, {
@@ -151,3 +147,15 @@ export function MyTaskTableRow({
     </TaskRowContextMenu>
   );
 }
+
+export const MyTaskTableRow = memo(MyTaskTableRowInner, (prev, next) => {
+  // Re-render only when these data-driven props change
+  if (prev.task !== next.task) return false;
+  if (prev.projectName !== next.projectName) return false;
+  if (prev.isSelected !== next.isSelected) return false;
+  if (prev.dndDisabled !== next.dndDisabled) return false;
+  if (prev.isDragOverlay !== next.isDragOverlay) return false;
+  if (prev.columns !== next.columns) return false;
+  // onClick/onToggle are stable refs from parent (useCallback or inline in map)
+  return true;
+});

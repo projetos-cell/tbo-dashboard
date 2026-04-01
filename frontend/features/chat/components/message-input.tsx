@@ -74,6 +74,9 @@ export function MessageInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Map display names back to UUIDs for sending
+  const mentionMapRef = useRef<Map<string, string>>(new Map());
+
   function addFiles(files: File[]) {
     const valid = files.filter((f) => f.size <= MAX_FILE_SIZE);
     if (valid.length === 0) return;
@@ -120,6 +123,19 @@ export function MessageInput({
     setPendingVoiceFile(file);
   }
 
+  /** Replace @DisplayName with <@uuid> before sending */
+  function resolveMentions(text: string): string {
+    let resolved = text;
+    // Sort by name length descending to avoid partial matches
+    const entries = Array.from(mentionMapRef.current.entries()).sort(
+      (a, b) => b[0].length - a[0].length,
+    );
+    for (const [name, id] of entries) {
+      resolved = resolved.replaceAll(`@${name}`, `<@${id}>`);
+    }
+    return resolved;
+  }
+
   function handleSend() {
     // Voice message takes priority
     if (pendingVoiceFile) {
@@ -131,12 +147,14 @@ export function MessageInput({
     const trimmed = currentContent.trim();
     const hasFiles = pendingFiles.length > 0;
     if (!trimmed && !hasFiles) return;
-    onSend(trimmed || (hasFiles ? " " : ""), hasFiles ? pendingFiles.map((pf) => pf.file) : undefined);
+    const finalContent = isRichMode ? trimmed : resolveMentions(trimmed);
+    onSend(finalContent || (hasFiles ? " " : ""), hasFiles ? pendingFiles.map((pf) => pf.file) : undefined);
     if (isRichMode) {
       setRichContent("");
     } else {
       setContent("");
     }
+    mentionMapRef.current.clear();
     setMentionQuery(null);
     clearFiles();
     textareaRef.current?.focus();
@@ -202,7 +220,9 @@ export function MessageInput({
     const after = content.slice(
       mentionStart + 1 + (mentionQuery?.length ?? 0),
     );
-    const newContent = `${before}<@${option.id}> ${after}`;
+    // Show display name in textarea, store mapping for send
+    mentionMapRef.current.set(option.name, option.id);
+    const newContent = `${before}@${option.name} ${after}`;
     setContent(newContent);
     setMentionQuery(null);
     textareaRef.current?.focus();

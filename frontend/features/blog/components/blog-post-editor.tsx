@@ -296,7 +296,7 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
     if (mode === "create") {
       if (!tenantId) return;
       await createMutation.mutateAsync({ ...payload, tenant_id: tenantId });
-      router.push("/blog");
+      router.push("/cultura/blog");
     } else if (post) {
       await updateMutation.mutateAsync({ id: post.id, data: payload });
     }
@@ -305,7 +305,7 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
   const handleDelete = async () => {
     if (!post) return;
     await deleteMutation.mutateAsync(post.id);
-    router.push("/blog");
+    router.push("/cultura/blog");
   };
 
   const handleAiGenerated = useCallback(
@@ -347,7 +347,7 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
       {/* Header */}
       <div className="flex items-center justify-between border-b px-6 py-3 bg-background sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/blog")}>
+          <Button variant="ghost" size="icon" onClick={() => router.push("/cultura/blog")}>
             <IconArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-lg font-semibold">

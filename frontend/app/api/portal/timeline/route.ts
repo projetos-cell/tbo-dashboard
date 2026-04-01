@@ -44,22 +44,22 @@ export async function GET(request: Request) {
     // 1. Status updates
     try {
       const { data: updates } = await supabase
-        .from("project_status_updates")
+        .from("project_status_updates" as any)
         .select("id, status, summary, created_at, author_name")
         .eq("project_id", project.id)
         .order("created_at", { ascending: false })
         .limit(20);
 
       if (updates) {
-        for (const u of updates) {
+        for (const u of updates as unknown as Array<Record<string, unknown>>) {
           items.push({
             id: `su_${u.id}`,
             type: "status_update",
             title: "Atualização de status",
-            description: u.summary,
-            status: u.status,
-            author: u.author_name,
-            created_at: u.created_at,
+            description: u.summary as string,
+            status: u.status as string,
+            author: u.author_name as string,
+            created_at: u.created_at as string,
           });
         }
       }
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
         .limit(20);
 
       if (approvals) {
-        for (const a of approvals as Array<Record<string, unknown>>) {
+        for (const a of approvals as unknown as Array<Record<string, unknown>>) {
           const decision = a.decision as string | null;
           const responded = !!a.responded_at;
           const desc = responded
@@ -110,7 +110,7 @@ export async function GET(request: Request) {
         .limit(20);
 
       if (comments) {
-        for (const c of comments as Array<Record<string, unknown>>) {
+        for (const c of comments as unknown as Array<Record<string, unknown>>) {
           items.push({
             id: `cm_${c.id}`,
             type: "comment",

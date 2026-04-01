@@ -46,15 +46,34 @@ function useTenantId() {
   return useAuthStore((s) => s.tenantId);
 }
 
-export function useProjects() {
+export function useProjects(opts?: { page?: number; pageSize?: number }) {
+  const supabase = useSupabase();
+  const tenantId = useTenantId();
+  const page = opts?.page ?? 0;
+  const pageSize = opts?.pageSize ?? 500;
+
+  return useQuery({
+    queryKey: ["projects", tenantId, page, pageSize],
+    queryFn: async () => {
+      const result = await getProjects(supabase, { page, pageSize });
+      return result;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId,
+    select: (result) => result.data,
+  });
+}
+
+export function useProjectsPaginated(page: number, pageSize = 50) {
   const supabase = useSupabase();
   const tenantId = useTenantId();
 
   return useQuery({
-    queryKey: ["projects", tenantId],
-    queryFn: () => getProjects(supabase),
+    queryKey: ["projects-paginated", tenantId, page, pageSize],
+    queryFn: () => getProjects(supabase, { page, pageSize }),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
+    placeholderData: (prev) => prev,
   });
 }
 

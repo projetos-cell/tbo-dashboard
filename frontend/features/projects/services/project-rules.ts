@@ -1,9 +1,31 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 
-export type ProjectRuleRow = Database["public"]["Tables"]["project_rules"]["Row"];
-type ProjectRuleInsert = Database["public"]["Tables"]["project_rules"]["Insert"];
-type ProjectRuleUpdate = Database["public"]["Tables"]["project_rules"]["Update"];
+// project_rules table not in generated types — define manually
+export interface ProjectRuleRow {
+  id: string;
+  project_id: string;
+  tenant_id: string;
+  name: string;
+  trigger_type: string;
+  trigger_config: unknown;
+  conditions_json: unknown;
+  actions_json: unknown;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+export type ProjectRuleInsert = Partial<ProjectRuleRow> & {
+  project_id: string;
+  tenant_id: string;
+  name: string;
+  trigger_type: string;
+};
+export type ProjectRuleUpdate = Partial<ProjectRuleRow>;
+
+// Use untyped client to bypass missing table in generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedClient = SupabaseClient<any>;
 
 export interface RuleAction {
   type: "set_status" | "set_priority" | "set_assignee" | "add_tag" | "notify";
@@ -40,28 +62,30 @@ export async function getProjectRules(
   supabase: SupabaseClient<Database>,
   projectId: string
 ): Promise<ProjectRuleRow[]> {
-  const { data, error } = await supabase
+  const db = supabase as unknown as UntypedClient;
+  const { data, error } = await db
     .from("project_rules")
     .select(COLS)
     .eq("project_id", projectId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as ProjectRuleRow[];
 }
 
 export async function createProjectRule(
   supabase: SupabaseClient<Database>,
   rule: ProjectRuleInsert
 ): Promise<ProjectRuleRow> {
-  const { data, error } = await supabase
+  const db = supabase as unknown as UntypedClient;
+  const { data, error } = await db
     .from("project_rules")
-    .insert(rule as never)
+    .insert(rule)
     .select(COLS)
     .single();
 
   if (error) throw error;
-  return data;
+  return data as ProjectRuleRow;
 }
 
 export async function updateProjectRule(
@@ -69,22 +93,24 @@ export async function updateProjectRule(
   id: string,
   updates: ProjectRuleUpdate
 ): Promise<ProjectRuleRow> {
-  const { data, error } = await supabase
+  const db = supabase as unknown as UntypedClient;
+  const { data, error } = await db
     .from("project_rules")
-    .update({ ...updates, updated_at: new Date().toISOString() } as never)
+    .update({ ...updates, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select(COLS)
     .single();
 
   if (error) throw error;
-  return data;
+  return data as ProjectRuleRow;
 }
 
 export async function deleteProjectRule(
   supabase: SupabaseClient<Database>,
   id: string
 ): Promise<void> {
-  const { error } = await supabase
+  const db = supabase as unknown as UntypedClient;
+  const { error } = await db
     .from("project_rules")
     .delete()
     .eq("id", id);

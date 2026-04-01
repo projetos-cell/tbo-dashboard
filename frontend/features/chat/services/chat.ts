@@ -7,6 +7,25 @@ export type MemberRow = Database["public"]["Tables"]["chat_channel_members"]["Ro
 export type ReactionRow = Database["public"]["Tables"]["chat_reactions"]["Row"];
 export type SectionRow = Database["public"]["Tables"]["chat_channel_sections"]["Row"];
 
+type ChannelInsert = Database["public"]["Tables"]["chat_channels"]["Insert"];
+type ChannelUpdate = Database["public"]["Tables"]["chat_channels"]["Update"];
+type MessageInsert = Database["public"]["Tables"]["chat_messages"]["Insert"];
+type MessageUpdate = Database["public"]["Tables"]["chat_messages"]["Update"];
+type MemberInsert = Database["public"]["Tables"]["chat_channel_members"]["Insert"];
+type MemberUpdate = Database["public"]["Tables"]["chat_channel_members"]["Update"];
+type SectionInsert = Database["public"]["Tables"]["chat_channel_sections"]["Insert"];
+type SectionUpdate = Database["public"]["Tables"]["chat_channel_sections"]["Update"];
+type ReactionInsert = Database["public"]["Tables"]["chat_reactions"]["Insert"];
+
+/**
+ * Supabase generated types use branded/exact types for insert/update operations.
+ * Object literals in strict TS mode don't satisfy these — this cast helper
+ * narrows to the correct table operation type instead of blanket `as never`.
+ */
+function typed<T>(value: Partial<T>): T {
+  return value as T;
+}
+
 // ── Channels ─────────────────────────────────────────────────────────
 
 export async function getChannels(
@@ -40,11 +59,11 @@ export async function createChannel(
 ) {
   const { data, error } = await supabase
     .from("chat_channels")
-    .insert(channel as never)
+    .insert(typed<ChannelInsert>(channel))
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as ChannelRow;
+  return data as ChannelRow;
 }
 
 export async function updateChannel(
@@ -54,12 +73,12 @@ export async function updateChannel(
 ) {
   const { data, error } = await supabase
     .from("chat_channels")
-    .update(updates as never)
+    .update(typed<ChannelUpdate>(updates))
     .eq("id", id)
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as ChannelRow;
+  return data as ChannelRow;
 }
 
 export async function archiveChannel(
@@ -68,7 +87,7 @@ export async function archiveChannel(
 ) {
   const { error } = await supabase
     .from("chat_channels")
-    .update({ is_archived: true } as never)
+    .update(typed<ChannelUpdate>({ is_archived: true }))
     .eq("id", id);
   if (error) throw error;
 }
@@ -79,7 +98,7 @@ export async function unarchiveChannel(
 ) {
   const { error } = await supabase
     .from("chat_channels")
-    .update({ is_archived: false } as never)
+    .update(typed<ChannelUpdate>({ is_archived: false }))
     .eq("id", id);
   if (error) throw error;
 }
@@ -88,21 +107,11 @@ export async function deleteChannelPermanently(
   supabase: SupabaseClient<Database>,
   id: string,
 ) {
-  // Delete members first (FK constraint)
-  await supabase.from("chat_channel_members").delete().eq("channel_id", id);
-  // Delete messages + attachments
-  const { data: msgs } = await supabase
-    .from("chat_messages")
-    .select("id")
-    .eq("channel_id", id);
-  if (msgs && msgs.length > 0) {
-    const msgIds = msgs.map((m) => m.id);
-    await supabase.from("chat_reactions").delete().in("message_id", msgIds);
-    await supabase.from("chat_attachments").delete().in("message_id", msgIds);
-    await supabase.from("chat_messages").delete().eq("channel_id", id);
-  }
-  // Delete channel
-  const { error } = await supabase.from("chat_channels").delete().eq("id", id);
+  // Use transactional RPC — all deletes happen in a single transaction.
+  // If any step fails, everything rolls back (no orphaned data).
+  const { error } = await supabase.rpc("delete_chat_channel_permanently" as never, {
+    p_channel_id: id,
+  } as never);
   if (error) throw error;
 }
 
@@ -120,13 +129,12 @@ export async function getChannelsForAutoArchive(
   if (error) throw error;
 
   const now = Date.now();
-  return (data ?? []).filter((ch) => {
-    const days = (ch as unknown as { auto_archive_days: number; last_activity_at: string | null }).auto_archive_days;
-    const lastActivity = (ch as unknown as { last_activity_at: string | null }).last_activity_at;
-    if (!lastActivity) return false;
-    const msInactive = now - new Date(lastActivity).getTime();
-    return msInactive > days * 24 * 60 * 60 * 1000;
-  }) as unknown as { id: string; name: string }[];
+  type AutoArchiveRow = { id: string; name: string; auto_archive_days: number; last_activity_at: string | null };
+  return ((data ?? []) as AutoArchiveRow[]).filter((ch) => {
+    if (!ch.last_activity_at) return false;
+    const msInactive = now - new Date(ch.last_activity_at).getTime();
+    return msInactive > ch.auto_archive_days * 24 * 60 * 60 * 1000;
+  }) as { id: string; name: string }[];
 }
 
 /** Get archived channels for sidebar display */
@@ -196,7 +204,7 @@ export async function addChannelMembers(
   }));
   const { error } = await supabase
     .from("chat_channel_members")
-    .upsert(rows as never[]);
+    .upsert(rows.map((r) => typed<MemberInsert>(r)));
   if (error) throw error;
 }
 
@@ -221,7 +229,7 @@ export async function updateMemberRole(
 ) {
   const { error } = await supabase
     .from("chat_channel_members")
-    .update({ role } as never)
+    .update(typed<MemberUpdate>({ role }))
     .eq("channel_id", channelId)
     .eq("user_id", userId);
   if (error) throw error;
@@ -234,7 +242,7 @@ export async function joinChannel(
 ) {
   const { error } = await supabase
     .from("chat_channel_members")
-    .upsert({ channel_id: channelId, user_id: userId, role: "member" } as never);
+    .upsert(typed<MemberInsert>({ channel_id: channelId, user_id: userId, role: "member" }));
   if (error) throw error;
 }
 
@@ -245,7 +253,7 @@ export async function updateLastRead(
 ) {
   const { error } = await supabase
     .from("chat_channel_members")
-    .update({ last_read_at: new Date().toISOString() } as never)
+    .update(typed<MemberUpdate>({ last_read_at: new Date().toISOString() }))
     .eq("channel_id", channelId)
     .eq("user_id", userId);
   if (error) throw error;
@@ -266,7 +274,7 @@ export async function getMessages(
     .eq("channel_id", channelId)
     .is("deleted_at", null)
     .is("reply_to", null)
-    .is("scheduled_at" as never, null)
+    .is("scheduled_at", null)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -283,11 +291,11 @@ export async function sendMessage(
 ) {
   const { data, error } = await supabase
     .from("chat_messages")
-    .insert(msg as never)
+    .insert(typed<MessageInsert>(msg))
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as MessageRow;
+  return data as MessageRow;
 }
 
 export async function editMessage(
@@ -297,12 +305,12 @@ export async function editMessage(
 ) {
   const { data, error } = await supabase
     .from("chat_messages")
-    .update({ content, edited_at: new Date().toISOString() } as never)
+    .update(typed<MessageUpdate>({ content, edited_at: new Date().toISOString() }))
     .eq("id", messageId)
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as MessageRow;
+  return data as MessageRow;
 }
 
 export async function deleteMessage(
@@ -311,7 +319,7 @@ export async function deleteMessage(
 ) {
   const { error } = await supabase
     .from("chat_messages")
-    .update({ deleted_at: new Date().toISOString() } as never)
+    .update(typed<MessageUpdate>({ deleted_at: new Date().toISOString() }))
     .eq("id", messageId);
   if (error) throw error;
 }
@@ -334,6 +342,11 @@ export async function searchMessages(
   } as never);
   if (error) throw error;
   return (data ?? []) as MessageRow[];
+}
+
+/** Escape LIKE/ILIKE wildcards so user input is treated as literal text. */
+function escapeLikePattern(input: string): string {
+  return input.replace(/[%_\\]/g, (ch) => `\\${ch}`);
 }
 
 export type MessageSearchType = "message" | "file" | "link";
@@ -364,7 +377,8 @@ export async function searchMessagesWithFilters(
     .limit(opts.limit ?? 50);
 
   if (query.trim().length >= 2) {
-    qb = qb.ilike("content", `%${query.trim()}%`) as typeof qb;
+    const safeQuery = escapeLikePattern(query.trim());
+    qb = qb.ilike("content", `%${safeQuery}%`) as typeof qb;
   }
   if (filters.channelId) {
     qb = qb.eq("channel_id", filters.channelId) as typeof qb;
@@ -525,11 +539,11 @@ export async function createSection(
 ) {
   const { data, error } = await supabase
     .from("chat_channel_sections")
-    .insert(section as never)
+    .insert(typed<SectionInsert>(section))
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as SectionRow;
+  return data as SectionRow;
 }
 
 export async function updateSection(
@@ -539,12 +553,12 @@ export async function updateSection(
 ) {
   const { data, error } = await supabase
     .from("chat_channel_sections")
-    .update(updates as never)
+    .update(typed<SectionUpdate>(updates))
     .eq("id", id)
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as SectionRow;
+  return data as SectionRow;
 }
 
 export async function deleteSection(
@@ -577,7 +591,7 @@ export async function addReaction(
   supabase: SupabaseClient<Database>,
   reaction: Database["public"]["Tables"]["chat_reactions"]["Insert"],
 ) {
-  const { error } = await supabase.from("chat_reactions").upsert(reaction as never, {
+  const { error } = await supabase.from("chat_reactions").upsert(typed<ReactionInsert>(reaction), {
     onConflict: "message_id,user_id,emoji",
   });
   if (error) throw error;
@@ -607,7 +621,7 @@ export async function togglePinMessage(
 ) {
   const { error } = await supabase
     .from("chat_messages")
-    .update({ is_pinned: pinned } as never)
+    .update(typed<MessageUpdate>({ is_pinned: pinned }))
     .eq("id", messageId);
   if (error) throw error;
 }
@@ -667,7 +681,7 @@ export async function forwardMessage(
         content: original.content ?? "",
         original_created_at: original.created_at ?? "",
       },
-    } as never,
+    } as MessageInsert["metadata"],
   });
 }
 
@@ -684,8 +698,8 @@ export async function getScheduledMessages(
     .eq("channel_id", channelId)
     .eq("sender_id", userId)
     .is("deleted_at", null)
-    .not("scheduled_at" as never, "is", null)
-    .order("scheduled_at" as never, { ascending: true });
+    .not("scheduled_at", "is", null)
+    .order("scheduled_at", { ascending: true });
   if (error) throw error;
   return data as MessageRow[];
 }
@@ -696,7 +710,7 @@ export async function cancelScheduledMessage(
 ) {
   const { error } = await supabase
     .from("chat_messages")
-    .update({ deleted_at: new Date().toISOString() } as never)
+    .update(typed<MessageUpdate>({ deleted_at: new Date().toISOString() }))
     .eq("id", messageId);
   if (error) throw error;
 }

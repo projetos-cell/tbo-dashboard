@@ -16,18 +16,9 @@ const SORT_ACCESSOR: Record<string, string> = {
   prioridade: "priority",
 };
 
-function getResponsiveClass(columnId: string): string {
-  switch (columnId) {
-    case "projeto":
-      return "hidden lg:table-cell";
-    case "status":
-    case "prioridade":
-      return "hidden sm:table-cell";
-    case "responsavel":
-      return "hidden md:table-cell";
-    default:
-      return "";
-  }
+// With table-fixed + column resize, we show all columns and rely on horizontal scroll
+function getResponsiveClass(_columnId: string): string {
+  return "";
 }
 
 interface SortableHeadProps {
@@ -38,6 +29,7 @@ interface SortableHeadProps {
   sortDirection?: "asc" | "desc";
   onSort?: (sortBy: string, direction: "asc" | "desc") => void;
   onResizeColumn?: (columnId: string, width: number) => void;
+  onLiveResize?: (columnId: string, width: number) => void;
   dndEnabled: boolean;
 }
 
@@ -49,6 +41,7 @@ export function SortableHead({
   sortDirection,
   onSort,
   onResizeColumn,
+  onLiveResize,
   dndEnabled,
 }: SortableHeadProps) {
   const thRef = useRef<HTMLTableCellElement>(null);
@@ -68,11 +61,13 @@ export function SortableHead({
     disabled: !dndEnabled,
   });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    ...(column.id === "tarefa" ? {} : { width: column.width, minWidth: column.minWidth }),
+    ...(column.id === "tarefa"
+      ? {}
+      : { width: `var(--col-${column.id}-w, ${column.width}px)`, minWidth: column.minWidth }),
   };
 
   const handleClick = useCallback(() => {
@@ -96,15 +91,15 @@ export function SortableHead({
       const onMouseMove = (ev: MouseEvent) => {
         const delta = ev.clientX - startX;
         const newWidth = Math.max(column.minWidth, startWidth + delta);
-        if (thRef.current) {
-          thRef.current.style.width = `${newWidth}px`;
-        }
+        // Live update via CSS custom property (colgroup picks this up)
+        onLiveResize?.(column.id, Math.round(newWidth));
       };
 
       const onMouseUp = () => {
         document.removeEventListener("mousemove", onMouseMove);
         document.removeEventListener("mouseup", onMouseUp);
         document.body.style.cursor = "";
+        document.body.style.userSelect = "";
 
         if (thRef.current) {
           const finalWidth = thRef.current.getBoundingClientRect().width;
@@ -113,10 +108,11 @@ export function SortableHead({
       };
 
       document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
     },
-    [column.id, column.minWidth, onResizeColumn]
+    [column.id, column.minWidth, onResizeColumn, onLiveResize]
   );
 
   const responsiveClass = getResponsiveClass(column.id);
@@ -133,10 +129,9 @@ export function SortableHead({
     <TableHead
       ref={mergedRef}
       className={cn(
-        "relative text-xs font-semibold text-muted-foreground uppercase tracking-wider select-none",
+        "relative text-[9px] font-medium text-muted-foreground/40 uppercase tracking-widest select-none",
         isFirst && "pl-10",
-        !isLast && "border-r border-border/40",
-        isSortable && "cursor-pointer hover:text-foreground transition-colors",
+        isSortable && "cursor-pointer hover:text-muted-foreground transition-colors",
         isDragging && "z-20",
         responsiveClass
       )}
@@ -169,10 +164,12 @@ export function SortableHead({
 
       {!isLast && onResizeColumn && column.id !== "tarefa" && (
         <div
-          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 transition-colors"
+          className="absolute -right-1 top-0 bottom-0 w-3 cursor-col-resize group/resize z-10 flex items-center justify-center"
           onMouseDown={handleResizeStart}
           onClick={(e) => e.stopPropagation()}
-        />
+        >
+          <div className="h-4 w-0.5 rounded-full bg-transparent group-hover/resize:bg-primary/40 transition-colors" />
+        </div>
       )}
     </TableHead>
   );

@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/lib/supabase/types";
 
-type Project = Database["public"]["Tables"]["projects"]["Row"];
+type Project = Database["public"]["Tables"]["projects"]["Row"] & { cover_url?: string | null };
 
 interface ProjectGalleryProps {
   projects: Project[];

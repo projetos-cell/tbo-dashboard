@@ -1,235 +1,102 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { Skeleton } from "@/components/ui/skeleton";
 import { RequireRole } from "@/features/auth/components/require-role";
-import { useReportSchedules, useReportRuns, useReportRunsRealtime } from "@/hooks/use-reports";
-import { computeReportsKPIs } from "@/services/reports";
-import { ErrorState } from "@/components/shared";
-import { RelatoriosKpiCards } from "./_components/relatorios-kpi-cards";
-import { RelatoriosTabAgendamentos } from "./_components/relatorios-tab-agendamentos";
-import { RelatoriosTabExecucoes } from "./_components/relatorios-tab-execucoes";
+import { useAuthStore } from "@/stores/auth-store";
 import {
-  IconFileAnalytics,
-  IconChartBar,
-  IconCalendarClock,
+  IconArrowRight,
   IconArrowsLeftRight,
+  IconCalendarClock,
+  IconChartBar,
   IconMathFunction,
   IconShieldCheck,
-  IconArrowRight,
 } from "@tabler/icons-react";
-import { useBIDashboards, useScheduledReports, useDataQualityScores } from "@/features/relatorios/hooks/use-reports";
 
-const TAB_DESCRIPTIONS: Record<string, string> = {
-  agendamentos: "Configure relatorios automaticos para sua equipe.",
-  execucoes: "Historico completo de execucoes de relatorios.",
+const T = {
+  text: "#0f0f0f",
+  muted: "#4a4a4a",
+  orange: "#c45a1a",
+  glass: "rgba(255,255,255,0.65)",
+  glassBorder: "rgba(255,255,255,0.45)",
+  glassShadow: "0 8px 32px rgba(15,15,15,0.06), 0 1px 3px rgba(15,15,15,0.04)",
+  glassBlur: "blur(16px) saturate(180%)",
+  r: "16px",
+  rSm: "10px",
 };
 
-// ── Navigation Hub Cards ──────────────────────────────────────────────────────
+type ModuleDef = { href: string; label: string; description: string; icon: React.ElementType; color: string };
 
-const BI_SECTIONS = [
-  {
-    href: "/relatorios/bi",
-    icon: IconChartBar,
-    title: "BI Dashboards",
-    description: "Crie dashboards personalizados com widgets e gráficos interativos.",
-    color: "text-blue-600",
-    bg: "bg-blue-50 dark:bg-blue-950/30",
-  },
-  {
-    href: "/relatorios/agendados",
-    icon: IconCalendarClock,
-    title: "Relatórios Agendados",
-    description: "Envios automáticos por e-mail em PDF, CSV ou Excel.",
-    color: "text-violet-600",
-    bg: "bg-violet-50 dark:bg-violet-950/30",
-  },
-  {
-    href: "/relatorios/yoy",
-    icon: IconArrowsLeftRight,
-    title: "Comparativo Anual",
-    description: "YoY: receita, despesas, margem, pipeline e headcount.",
-    color: "text-amber-600",
-    bg: "bg-amber-50 dark:bg-amber-950/30",
-  },
-  {
-    href: "/relatorios/unit-economics",
-    icon: IconMathFunction,
-    title: "Unit Economics",
-    description: "CAC, LTV, Payback Period, receita e lucro por colaborador.",
-    color: "text-emerald-600",
-    bg: "bg-emerald-50 dark:bg-emerald-950/30",
-  },
-  {
-    href: "/relatorios/qualidade-dados",
-    icon: IconShieldCheck,
-    title: "Qualidade de Dados",
-    description: "Score de completude por módulo. Identifique lacunas críticas.",
-    color: "text-rose-600",
-    bg: "bg-rose-50 dark:bg-rose-950/30",
-  },
+const MODULES: ModuleDef[] = [
+  { href: "/relatorios/bi", label: "BI Dashboards", description: "Dashboards personalizados com gráficos interativos", icon: IconChartBar, color: "#3b82f6" },
+  { href: "/relatorios/agendados", label: "Relatórios Agendados", description: "Relatórios automáticos com envio por email", icon: IconCalendarClock, color: "#8b5cf6" },
+  { href: "/relatorios/yoy", label: "Year over Year", description: "Comparativos anuais de performance", icon: IconArrowsLeftRight, color: "#22c55e" },
+  { href: "/relatorios/unit-economics", label: "Unit Economics", description: "LTV, CAC, margem por cliente e projeto", icon: IconMathFunction, color: "#f59e0b" },
+  { href: "/relatorios/qualidade-dados", label: "Qualidade de Dados", description: "Scoring e integridade dos dados do sistema", icon: IconShieldCheck, color: "#ef4444" },
 ];
 
-function BiSectionCards() {
-  const { data: biDashboards = [] } = useBIDashboards();
-  const { data: scheduledReports = [] } = useScheduledReports();
-  const { data: qualityScores = [] } = useDataQualityScores();
-
-  const badges: Record<string, string | number | undefined> = {
-    "/relatorios/bi": biDashboards.length > 0 ? biDashboards.length : undefined,
-    "/relatorios/agendados": scheduledReports.filter((r) => r.is_active).length > 0
-      ? `${scheduledReports.filter((r) => r.is_active).length} ativos`
-      : undefined,
-    "/relatorios/qualidade-dados": qualityScores.length > 0
-      ? `${Math.round(qualityScores.reduce((s, sc) => s + Number(sc.completeness_pct ?? 0), 0) / qualityScores.length)}% completo`
-      : undefined,
-  };
-
+function ModuleCard({ mod }: { mod: ModuleDef }) {
+  const Icon = mod.icon;
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {BI_SECTIONS.map((section) => {
-        const Icon = section.icon;
-        const badge = badges[section.href];
-        return (
-          <Card key={section.href} className="group transition-shadow hover:shadow-md">
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between">
-                <div className={`rounded-lg p-2 ${section.bg}`}>
-                  <Icon className={`h-5 w-5 ${section.color}`} />
-                </div>
-                {badge !== undefined && (
-                  <Badge variant="secondary" className="text-xs">
-                    {badge}
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <h3 className="font-semibold text-sm">{section.title}</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                {section.description}
-              </p>
-              <Button asChild variant="ghost" size="sm" className="mt-3 -ml-2 gap-1 text-xs">
-                <Link href={section.href}>
-                  Acessar
-                  <IconArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+    <Link href={mod.href} className="block transition-all hover:scale-[1.005]">
+      <div className="p-4 flex items-center gap-3" style={{ background: T.glass, backdropFilter: T.glassBlur, WebkitBackdropFilter: T.glassBlur, border: `1px solid ${T.glassBorder}`, borderRadius: T.rSm, boxShadow: T.glassShadow }}>
+        <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${mod.color}15` }}>
+          <Icon className="size-5" style={{ color: mod.color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold" style={{ color: T.text }}>{mod.label}</p>
+          <p className="text-[11px] truncate" style={{ color: T.muted }}>{mod.description}</p>
+        </div>
+        <IconArrowRight className="size-4 shrink-0" style={{ color: T.muted }} />
+      </div>
+    </Link>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function RelatoriosPage() {
-  const [tab, setTab] = useState("agendamentos");
+  const user = useAuthStore((s) => s.user);
 
-  const {
-    data: schedules = [],
-    error: schedulesError,
-    refetch: refetchSchedules,
-  } = useReportSchedules();
-
-  const {
-    data: allRuns = [],
-    error: runsError,
-    refetch: refetchRuns,
-  } = useReportRuns();
-
-  useReportRunsRealtime();
-
-  const primaryError = schedulesError || runsError;
-  const primaryRefetch = () => { refetchSchedules(); refetchRuns(); };
-
-  const kpis = useMemo(() => computeReportsKPIs(schedules, allRuns), [schedules, allRuns]);
+  if (!user) {
+    return (
+      <div className="-mx-4 md:-mx-8 lg:-mx-12 -my-6">
+        <div className="min-h-[calc(100dvh-64px)] p-5 space-y-4 max-w-4xl mx-auto">
+          <Skeleton className="h-14 rounded-2xl" />
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <RequireRole minRole="admin" module="relatorios">
-      <div className="space-y-6">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Relatorios</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
-        <div className="flex items-start gap-3">
-          <div className="rounded-lg bg-primary/10 p-2">
-            <IconFileAnalytics className="h-6 w-6 text-primary" />
+      <div className="-mx-4 md:-mx-8 lg:-mx-12 -my-6">
+        <div className="min-h-[calc(100dvh-64px)] p-5 space-y-4 max-w-4xl mx-auto">
+          {/* Header Bar */}
+          <div className="relative overflow-hidden p-4" style={{ background: "linear-gradient(135deg, #1a1410 0%, #2d1810 50%, #c45a1a 100%)", borderRadius: T.r, boxShadow: "0 8px 32px rgba(196,90,26,0.15)" }}>
+            <div className="absolute inset-0 opacity-[0.04]"><div className="absolute -top-8 -right-8 size-32 border-[2px] border-white rounded-full" /><div className="absolute bottom-0 left-10 size-16 border-[2px] border-white rounded-full" /></div>
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="flex gap-2">
+                {MODULES.slice(0, 3).map((m) => {
+                  const Icon = m.icon;
+                  return (
+                    <Link key={m.href} href={m.href} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.08)" }}>
+                      <Icon className="size-3.5" style={{ color: m.color }} />
+                      {m.label.split(" ")[0]}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </div>
+
+          {/* Modules */}
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Relatorios</h1>
-            <p className="text-sm text-muted-foreground">
-              Central de inteligência — dashboards, relatórios e análises estratégicas.
-            </p>
+            <h2 className="text-sm font-semibold mb-3" style={{ color: T.text }}>Módulos</h2>
+            <div className="space-y-2">
+              {MODULES.map((mod) => <ModuleCard key={mod.href} mod={mod} />)}
+            </div>
           </div>
         </div>
-
-        {/* BI Hub Navigation */}
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Módulos de Análise
-          </h2>
-          <BiSectionCards />
-        </div>
-
-        {primaryError && (
-          <ErrorState message={primaryError.message} onRetry={primaryRefetch} />
-        )}
-
-        <RelatoriosKpiCards kpis={kpis} />
-
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList>
-            <TabsTrigger value="agendamentos" className="gap-1.5">
-              Agendamentos
-              {schedules.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">
-                  {schedules.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="execucoes" className="gap-1.5">
-              Execucoes
-              {allRuns.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">
-                  {allRuns.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="agendamentos" className="space-y-4">
-            <RelatoriosTabAgendamentos />
-          </TabsContent>
-
-          <TabsContent value="execucoes" className="space-y-4">
-            <RelatoriosTabExecucoes />
-          </TabsContent>
-        </Tabs>
       </div>
     </RequireRole>
   );

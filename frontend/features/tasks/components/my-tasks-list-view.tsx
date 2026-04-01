@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import {
@@ -213,6 +213,37 @@ export function MyTasksListView({
     setDndAccessibilityContainer(document.body);
   }, []);
 
+  // Live column resize: store transient widths in a ref so body cells update during drag
+  const tableRef = useRef<HTMLDivElement>(null);
+  const handleLiveResize = useCallback(
+    (columnId: string, width: number) => {
+      // Update CSS custom property on the table wrapper so both th and td pick it up
+      if (tableRef.current) {
+        tableRef.current.style.setProperty(`--col-${columnId}-w`, `${width}px`);
+      }
+    },
+    []
+  );
+
+  // Wrap onResizeColumn to also do live resize + persist
+  const handleResizeColumnFinal = useCallback(
+    (columnId: string, width: number) => {
+      handleLiveResize(columnId, width);
+      onResizeColumn?.(columnId, width);
+    },
+    [handleLiveResize, onResizeColumn]
+  );
+
+  // Set initial CSS vars from column widths
+  useEffect(() => {
+    if (!tableRef.current) return;
+    for (const col of columns) {
+      if (col.id !== "tarefa" && col.width > 0) {
+        tableRef.current.style.setProperty(`--col-${col.id}-w`, `${col.width}px`);
+      }
+    }
+  }, [columns]);
+
   return (
     <>
     <DndContext
@@ -221,14 +252,15 @@ export function MyTasksListView({
       onDragEnd={handleDragEnd}
       accessibility={{ container: dndAccessibilityContainer }}
     >
-      <div className="rounded-lg border">
-        <Table>
+      <div ref={tableRef} className="overflow-x-auto">
+        <Table className="table-fixed">
           <MyTasksTableHeader
             columns={columns}
             sortBy={sortBy === "manual" ? undefined : sortBy}
             sortDirection={sortDirection}
             onSort={onSort}
-            onResizeColumn={onResizeColumn}
+            onResizeColumn={handleResizeColumnFinal}
+            onLiveResize={handleLiveResize}
             onReorderColumns={onReorderColumns}
             isAllSelected={isAllSelected}
             isIndeterminate={isIndeterminate}

@@ -47,7 +47,8 @@ interface VendorRow {
   cnpj: string | null;
 }
 
-type SupabaseAdmin = ReturnType<typeof createServiceClient>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseAdmin = any;
 
 // ── GET /api/finance/data-quality (Vercel Cron — every 10min) ───────────────
 

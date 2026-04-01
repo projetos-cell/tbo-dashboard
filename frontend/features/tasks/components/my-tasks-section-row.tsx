@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TableRow, TableCell } from "@/components/ui/table";
@@ -49,17 +48,17 @@ export function MyTasksSectionRow({
   }, [editName, section.name, onRename]);
 
   return (
-    <TableRow className="bg-muted/30 hover:bg-muted/40 border-b">
-      <TableCell colSpan={6} className="py-1.5 px-2">
+    <TableRow className="hover:bg-transparent border-b-0 border-t border-border/30 first:border-t-0">
+      <TableCell colSpan={6} className="py-3 px-2 pt-5">
         <div className="group flex items-center gap-2">
           <button
             onClick={onToggle}
-            className="shrink-0 rounded p-0.5 text-gray-500 hover:bg-gray-100"
+            className="shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
           >
             {isCollapsed ? (
-              <IconChevronRight className="h-4 w-4" />
+              <IconChevronRight className="h-3.5 w-3.5" />
             ) : (
-              <IconChevronDown className="h-4 w-4" />
+              <IconChevronDown className="h-3.5 w-3.5" />
             )}
           </button>
 
@@ -75,12 +74,12 @@ export function MyTasksSectionRow({
                   setIsEditing(false);
                 }
               }}
-              className="h-7 w-48 text-sm font-semibold"
+              className="h-7 w-48 text-sm font-bold"
               autoFocus
             />
           ) : (
             <h3
-              className="cursor-pointer text-sm font-semibold text-gray-700"
+              className="text-sm font-bold text-foreground cursor-default"
               onDoubleClick={() => {
                 if (!section.is_default) {
                   setEditName(section.name);
@@ -89,12 +88,11 @@ export function MyTasksSectionRow({
               }}
             >
               {section.name}
+              <span className="ml-1.5 text-muted-foreground/40 font-normal text-xs">
+                ({taskCount})
+              </span>
             </h3>
           )}
-
-          <Badge variant="secondary" className="h-5 text-[10px]">
-            {taskCount}
-          </Badge>
 
           {!section.is_default && (
             <DropdownMenu>
@@ -102,9 +100,9 @@ export function MyTasksSectionRow({
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                  className="h-5 w-5 opacity-0 transition-opacity group-hover:opacity-100"
                 >
-                  <IconDots className="h-3.5 w-3.5" />
+                  <IconDots className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

@@ -38,7 +38,7 @@ export async function createPedido(
 ): Promise<Pedido> {
   const { data, error } = await supabase
     .from("compras_pedidos")
-    .insert(input)
+    .insert(input as never)
     .select(`*, vendor:fin_vendors(id, name, cnpj)`)
     .single();
   if (error) throw error;
@@ -52,7 +52,7 @@ export async function updatePedido(
 ): Promise<Pedido> {
   const { data, error } = await supabase
     .from("compras_pedidos")
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update({ ...updates, updated_at: new Date().toISOString() } as never)
     .eq("id", id)
     .select(`*, vendor:fin_vendors(id, name, cnpj)`)
     .single();
@@ -107,7 +107,7 @@ export async function upsertPedidoItens(
 
   const { data, error } = await supabase
     .from("compras_itens")
-    .insert(items)
+    .insert(items as never)
     .select();
   if (error) throw error;
   return (data ?? []) as PedidoItem[];
@@ -131,7 +131,7 @@ export async function criarAprovacao(
 ): Promise<Aprovacao> {
   const { data, error } = await supabase
     .from("compras_aprovacoes")
-    .insert(input)
+    .insert(input as never)
     .select()
     .single();
   if (error) throw error;

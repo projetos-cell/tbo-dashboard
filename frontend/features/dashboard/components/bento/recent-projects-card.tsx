@@ -46,39 +46,39 @@ export function RecentProjectsCard({ projects }: RecentProjectsCardProps) {
     .slice(0, 6);
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border bg-card p-4">
+    <div className="flex h-full flex-col rounded-lg border border-border/30 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-semibold">Projetos Recentes</p>
+        <p className="text-sm font-bold text-foreground">Projetos Recentes</p>
         <Link
           href="/projetos"
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-foreground transition-colors"
         >
           Ver todos <IconArrowRight className="size-3" />
         </Link>
       </div>
 
       {active.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
+        <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground/60">
           Nenhum projeto ativo
         </div>
       ) : (
-        <div className="flex-1 space-y-1.5 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           {active.map((project, idx) => (
             <Link
               key={project.id}
               href={`/projetos/${project.id}`}
-              className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/60"
+              className="flex h-10 items-center gap-3 border-b border-border/30 px-1 transition-colors hover:bg-muted/40 last:border-b-0"
             >
-              <Avatar className="size-8 shrink-0">
+              <Avatar className="size-6 shrink-0">
                 <AvatarFallback
-                  className={`text-[10px] font-bold text-white ${PROJECT_COLORS[idx % PROJECT_COLORS.length]}`}
+                  className={`text-[9px] font-bold text-white ${PROJECT_COLORS[idx % PROJECT_COLORS.length]}`}
                 >
                   {getProjectInitials(project.name ?? "")}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium truncate">{project.name}</p>
-                <p className="text-[10px] text-muted-foreground truncate">
+                <p className="text-[10px] text-muted-foreground/60 truncate">
                   {project.construtora ?? "Sem cliente"}
                 </p>
               </div>

@@ -15,88 +15,95 @@ import { ConversationHeader, IconHash, IconLock } from "./conversation-header";
 import { ThreadPanel } from "./thread-panel";
 import { ForwardMessageDialog } from "./forward-message-dialog";
 import { ScheduledMessagesPanel } from "./scheduled-messages-panel";
-import type { ConversationHeaderInfo } from "./conversation-header";
-import {
-  useChannelsWithMembers,
-  useMessages,
-  useSendMessage,
-  useEditMessage,
-  useDeleteMessage,
-  useMarkAsRead,
-  useUnreadCounts,
-  useSections,
-  useTogglePin,
-  useArchivedChannels,
-  useArchiveChannel,
-  useUnarchiveChannel,
-  useDeleteChannelPermanently,
-  useUpdateChannel,
-  useCreateSection,
-  useUpdateSection,
-  useDeleteSection,
-  useAddReaction,
-  useRemoveReaction,
-  flattenMessages,
-  useScheduledMessages,
-  useSendScheduledMessage,
-  useCancelScheduledMessage,
-} from "@/features/chat/hooks/use-chat";
-import {
-  uploadChatFile,
-  createAttachmentRecord,
-  getChannelUploadLimitBytes,
-} from "@/features/chat/services/chat-attachments";
-import { compressFiles } from "@/features/chat/utils/image-compress";
-import {
-  extractMentionIds,
-  hasBroadcastMention,
-  notifyOnChatMention,
-} from "@/services/notification-triggers";
-import { useProfiles } from "@/features/people/hooks/use-people";
-import { useTypingIndicator } from "@/features/chat/hooks/use-typing-indicator";
-import { useChatPresence } from "@/features/chat/hooks/use-presence";
-import { useAutoArchive } from "@/features/chat/hooks/use-auto-archive";
-import { usePushNotifications } from "@/features/chat/hooks/use-push-notifications";
-import { useAllNotificationPrefs } from "@/features/chat/hooks/use-notification-prefs";
-import { useFaviconBadge } from "@/features/chat/hooks/use-favicon-badge";
-import { useNotificationSound, getSoundPref, saveSoundPref } from "@/features/chat/hooks/use-notification-sound";
-import { useAuthStore } from "@/stores/auth-store";
-import { useChatStore } from "@/features/chat/stores/chat-store";
-import { useBookmarks, useAddBookmark, useRemoveBookmark } from "@/features/chat/hooks/use-chat-bookmarks";
-import { useChannelFavorites } from "@/features/chat/hooks/use-channel-favorites";
-import { setNotificationPref } from "@/features/chat/services/chat-notification-prefs";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BookmarksPanel } from "./bookmarks-panel";
 import { MediaGalleryPanel } from "./media-gallery-panel";
 import { ChannelSwitcher } from "./channel-switcher";
 import { BrowseChannelsDialog } from "./browse-channels-dialog";
 import { CreateTaskFromMessageDialog } from "./create-task-from-message-dialog";
 import { ChannelSummaryPanel } from "./channel-summary-panel";
-import { hasPermission, type RoleSlug } from "@/lib/permissions";
-import { canPerformChannelAction } from "@/features/chat/utils/chat-permissions";
-import { buildProfileMap } from "@/features/chat/utils/profile-utils";
-import type { MentionOption } from "./mention-popup";
-import { SPECIAL_MENTION_OPTIONS } from "./mention-popup";
+import type { ConversationHeaderInfo } from "./conversation-header";
+import type { MessageRow } from "@/features/chat/services/chat";
+
+import { useChatData } from "@/features/chat/hooks/use-chat-data";
+import { useChatHandlers } from "@/features/chat/hooks/use-chat-handlers";
+import { useChatStore } from "@/features/chat/stores/chat-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
-export function ChatLayout() {
-  const tenantId = useAuthStore((s) => s.tenantId);
-  const userId = useAuthStore((s) => s.user?.id);
-  const userRole = useAuthStore((s) => s.role) as RoleSlug | null;
+// ── Keyboard shortcuts hook ─────────────────────────────────────────
 
-  const selectedChannelId = useChatStore((s) => s.selectedChannelId);
-  const setSelectedChannelId = useChatStore((s) => s.setSelectedChannelId);
-  const toggleSearch = useChatStore((s) => s.toggleSearch);
-  const isSearchOpen = useChatStore((s) => s.isSearchOpen);
-  const setSearchQuery = useChatStore((s) => s.setSearchQuery);
-  const unreadCounts = useChatStore((s) => s.unreadCounts);
-  const setUnreadCounts = useChatStore((s) => s.setUnreadCounts);
-  const setChannelSettingsOpen = useChatStore((s) => s.setChannelSettingsOpen);
+function useChatKeyboardShortcuts({
+  isSearchOpen,
+  toggleSearch,
+  setSearchQuery,
+  channelSwitcherOpen,
+  setChannelSwitcherOpen,
+  threadMessage,
+  setThreadMessage,
+  bookmarksPanelOpen,
+  setBookmarksPanelOpen,
+  mediaGalleryOpen,
+  setMediaGalleryOpen,
+  summaryPanelOpen,
+  setSummaryPanelOpen,
+  scheduledPanelOpen,
+  setScheduledPanelOpen,
+}: {
+  isSearchOpen: boolean;
+  toggleSearch: () => void;
+  setSearchQuery: (q: string) => void;
+  channelSwitcherOpen: boolean;
+  setChannelSwitcherOpen: (v: boolean) => void;
+  threadMessage: MessageRow | null;
+  setThreadMessage: (v: MessageRow | null) => void;
+  bookmarksPanelOpen: boolean;
+  setBookmarksPanelOpen: (v: boolean) => void;
+  mediaGalleryOpen: boolean;
+  setMediaGalleryOpen: (v: boolean) => void;
+  summaryPanelOpen: boolean;
+  setSummaryPanelOpen: (v: boolean) => void;
+  scheduledPanelOpen: boolean;
+  setScheduledPanelOpen: (v: boolean) => void;
+}) {
+  const handler = useCallback(
+    (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setChannelSwitcherOpen(true);
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        if (!isSearchOpen) toggleSearch();
+        return;
+      }
+      if (e.key === "Escape") {
+        if (isSearchOpen) { toggleSearch(); setSearchQuery(""); return; }
+        if (channelSwitcherOpen) { setChannelSwitcherOpen(false); return; }
+        if (threadMessage) { setThreadMessage(null); return; }
+        if (bookmarksPanelOpen) { setBookmarksPanelOpen(false); return; }
+        if (mediaGalleryOpen) { setMediaGalleryOpen(false); return; }
+        if (summaryPanelOpen) { setSummaryPanelOpen(false); return; }
+        if (scheduledPanelOpen) { setScheduledPanelOpen(false); return; }
+      }
+    },
+    [
+      isSearchOpen, toggleSearch, setSearchQuery, channelSwitcherOpen,
+      setChannelSwitcherOpen, threadMessage, setThreadMessage, bookmarksPanelOpen,
+      setBookmarksPanelOpen, mediaGalleryOpen, setMediaGalleryOpen,
+      summaryPanelOpen, setSummaryPanelOpen, scheduledPanelOpen, setScheduledPanelOpen,
+    ],
+  );
 
-  const [showConversation, setShowConversation] = useState(false);
-  // #49 — Sidebar resize
+  useEffect(() => {
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [handler]);
+}
+
+// ── Sidebar resize hook ─────────────────────────────────────────────
+
+function useSidebarResize() {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("chat-sidebar-width");
@@ -105,294 +112,116 @@ export function ChatLayout() {
     return 320;
   });
   const isDraggingRef = useRef(false);
-  const handleSidebarMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isDraggingRef.current = true;
-    const startX = e.clientX;
-    const startWidth = sidebarWidth;
-    function onMove(ev: MouseEvent) {
-      if (!isDraggingRef.current) return;
-      const next = Math.max(200, Math.min(480, startWidth + ev.clientX - startX));
-      setSidebarWidth(next);
-    }
-    function onUp() {
-      isDraggingRef.current = false;
-      setSidebarWidth((w) => {
-        localStorage.setItem("chat-sidebar-width", String(w));
-        return w;
-      });
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    }
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-  }, [sidebarWidth]);
-  // #5 — Capture unread count snapshot when channel opens (before markAsRead clears it)
-  const [initialUnreadCount, setInitialUnreadCount] = useState(0);
-  // #11 — Thread panel state
-  const [threadMessage, setThreadMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
-  // #12 — Forward dialog state
-  const [forwardMessage, setForwardMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
-  // #43 — Create task from message state
-  const [taskSourceMessage, setTaskSourceMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
-  // #45 — AI summary panel state
-  const [summaryPanelOpen, setSummaryPanelOpen] = useState(false);
-  // #14 — Scheduled messages panel state
-  const [scheduledPanelOpen, setScheduledPanelOpen] = useState(false);
-  // #17 — Bookmarks panel state
-  const [bookmarksPanelOpen, setBookmarksPanelOpen] = useState(false);
-  // #38 — Media gallery panel state
-  const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false);
-  // #23 — Channel switcher state (Ctrl+K)
-  const [channelSwitcherOpen, setChannelSwitcherOpen] = useState(false);
-  // #10 — Sound preference (localStorage-backed, UI preference only)
-  const [soundEnabled, setSoundEnabled] = useState(() => getSoundPref());
-  function handleToggleSound(enabled: boolean) {
-    setSoundEnabled(enabled);
-    saveSoundPref(enabled);
-  }
 
-  // #23 — Global keyboard shortcuts: Ctrl+K (channel switcher), Ctrl+F (search), Esc (close panels)
-  const handleGlobalKeyboard = useCallback(
-    (e: KeyboardEvent) => {
-      // Ctrl/Cmd+K → channel switcher
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setChannelSwitcherOpen(true);
-        return;
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isDraggingRef.current = true;
+      const startX = e.clientX;
+      const startWidth = sidebarWidth;
+      function onMove(ev: MouseEvent) {
+        if (!isDraggingRef.current) return;
+        const next = Math.max(200, Math.min(480, startWidth + ev.clientX - startX));
+        setSidebarWidth(next);
       }
-      // Ctrl/Cmd+F → search
-      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
-        e.preventDefault();
-        if (!isSearchOpen) toggleSearch();
-        return;
+      function onUp() {
+        isDraggingRef.current = false;
+        setSidebarWidth((w) => {
+          localStorage.setItem("chat-sidebar-width", String(w));
+          return w;
+        });
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
       }
-      // Escape → close open panels in priority order
-      if (e.key === "Escape") {
-        if (isSearchOpen) {
-          toggleSearch();
-          setSearchQuery("");
-          return;
-        }
-        if (channelSwitcherOpen) {
-          setChannelSwitcherOpen(false);
-          return;
-        }
-        if (threadMessage) {
-          setThreadMessage(null);
-          return;
-        }
-        if (bookmarksPanelOpen) {
-          setBookmarksPanelOpen(false);
-          return;
-        }
-        if (mediaGalleryOpen) {
-          setMediaGalleryOpen(false);
-          return;
-        }
-        if (summaryPanelOpen) {
-          setSummaryPanelOpen(false);
-          return;
-        }
-        if (scheduledPanelOpen) {
-          setScheduledPanelOpen(false);
-          return;
-        }
-      }
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
     },
-    [isSearchOpen, toggleSearch, setSearchQuery, channelSwitcherOpen, threadMessage, bookmarksPanelOpen, mediaGalleryOpen, scheduledPanelOpen, summaryPanelOpen],
+    [sidebarWidth],
   );
-  useEffect(() => {
-    document.addEventListener("keydown", handleGlobalKeyboard);
-    return () => document.removeEventListener("keydown", handleGlobalKeyboard);
-  }, [handleGlobalKeyboard]);
 
-  // Data
-  const { data: channels, isLoading: loadingChannels } = useChannelsWithMembers();
-  const { data: sections } = useSections();
-  const { data: archivedChannels } = useArchivedChannels();
-  const { data: profiles } = useProfiles();
-  const messagesQuery = useMessages(selectedChannelId);
-  const { data: unreadData } = useUnreadCounts();
+  return { sidebarWidth, handleMouseDown };
+}
 
-  useEffect(() => {
-    if (unreadData) setUnreadCounts(unreadData);
-  }, [unreadData, setUnreadCounts]);
+// ── Main ChatLayout ─────────────────────────────────────────────────
 
-  // Sync unread + presence
-  const { sendTyping } = useTypingIndicator(selectedChannelId);
-  useChatPresence();
-  useAutoArchive(); // #32 — Auto-archive inactive channels
+export function ChatLayout() {
+  const data = useChatData();
+  const {
+    tenantId, userId, channels, sections, archivedChannels, loadingChannels,
+    messagesQuery, messages, selectedChannel, selectedChannelId,
+    setSelectedChannelId, profileMap, unreadCounts, scheduledMessages,
+    loadingScheduled, canDeleteOthers, canCreateChannel, canManageChannels,
+    canSendMessage, canPin, soundEnabled, handleToggleSound, mentionOptions,
+    lastOwnMessage, mutedChannelIds, handleMuteToggle, favoriteIds, toggleFavorite,
+    bookmarkedMessageIds, handleBookmark, sendTyping, channelSettings,
+  } = data;
 
-  // Push notifications (#7) — channel names map (senderNames built after profileMap)
-  const channelNames = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const ch of channels ?? []) {
-      if (ch.name) map[ch.id] = ch.name;
-    }
-    return map;
-  }, [channels]);
-
-  const { data: notifPrefsData } = useAllNotificationPrefs();
-
-  // Mutations
-  const sendMsg = useSendMessage();
-  const editMsg = useEditMessage();
-  const deleteMsg = useDeleteMessage();
-  const togglePin = useTogglePin();
-  const addReaction = useAddReaction();
-  const removeReaction = useRemoveReaction();
-  const markAsRead = useMarkAsRead();
-  // #14 — Scheduled messages
-  const { data: scheduledMessages, isLoading: loadingScheduled } = useScheduledMessages(selectedChannelId);
-  const sendScheduledMsg = useSendScheduledMessage();
-  const cancelScheduledMsg = useCancelScheduledMessage();
-
-  // #27 — Channel favorites
-  const { favoriteIds, toggleFavorite } = useChannelFavorites();
-
-  // #28 — Mute channels (uses existing notifPrefsData: setting "nothing" = muted)
-  const qc = useQueryClient();
-  const muteChannelMut = useMutation({
-    mutationFn: async ({ channelId, muted }: { channelId: string; muted: boolean }) => {
-      const supabase = (await import("@/lib/supabase/client")).createClient();
-      await setNotificationPref(supabase, userId!, channelId, muted ? "nothing" : "all");
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["chat-notif-prefs-all", userId] });
-    },
+  const handlers = useChatHandlers({
+    tenantId,
+    userId,
+    selectedChannelId,
+    selectedChannel: selectedChannel as never,
+    profileMap,
+    channels: channels as never,
   });
 
-  const mutedChannelIds = useMemo(() => {
-    if (!notifPrefsData) return new Set<string>();
-    return new Set(
-      Object.entries(notifPrefsData)
-        .filter(([, v]) => v === "nothing")
-        .map(([k]) => k),
-    );
-  }, [notifPrefsData]);
+  const toggleSearch = useChatStore((s) => s.toggleSearch);
+  const isSearchOpen = useChatStore((s) => s.isSearchOpen);
+  const setSearchQuery = useChatStore((s) => s.setSearchQuery);
+  const setChannelSettingsOpen = useChatStore((s) => s.setChannelSettingsOpen);
 
-  function handleMuteToggle(channelId: string, muted: boolean) {
-    muteChannelMut.mutate({ channelId, muted });
-  }
+  // Panel state
+  const [showConversation, setShowConversation] = useState(false);
+  const [initialUnreadCount, setInitialUnreadCount] = useState(0);
+  const [threadMessage, setThreadMessage] = useState<MessageRow | null>(null);
+  const [forwardMessage, setForwardMessage] = useState<MessageRow | null>(null);
+  const [taskSourceMessage, setTaskSourceMessage] = useState<MessageRow | null>(null);
+  const [summaryPanelOpen, setSummaryPanelOpen] = useState(false);
+  const [scheduledPanelOpen, setScheduledPanelOpen] = useState(false);
+  const [bookmarksPanelOpen, setBookmarksPanelOpen] = useState(false);
+  const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false);
+  const [channelSwitcherOpen, setChannelSwitcherOpen] = useState(false);
 
-  // #17 — Bookmarks
-  const { data: bookmarksData } = useBookmarks();
-  const addBookmarkMut = useAddBookmark();
-  const removeBookmarkMut = useRemoveBookmark();
-  const bookmarkedMessageIds = useMemo(
-    () => new Set((bookmarksData ?? []).map((b) => b.message_id)),
-    [bookmarksData],
-  );
+  const { sidebarWidth, handleMouseDown: handleSidebarMouseDown } = useSidebarResize();
 
-  function handleBookmark(messageId: string, remove: boolean) {
-    if (remove) {
-      removeBookmarkMut.mutate(messageId);
-    } else {
-      addBookmarkMut.mutate(messageId);
-    }
-  }
-
-  const archiveChannelMut = useArchiveChannel();
-  const unarchiveChannelMut = useUnarchiveChannel();
-  const deleteChannelMut = useDeleteChannelPermanently();
-  const updateChannelMut = useUpdateChannel();
-  const createSectionMut = useCreateSection();
-  const updateSectionMut = useUpdateSection();
-  const deleteSectionMut = useDeleteSection();
+  useChatKeyboardShortcuts({
+    isSearchOpen, toggleSearch, setSearchQuery, channelSwitcherOpen,
+    setChannelSwitcherOpen, threadMessage, setThreadMessage, bookmarksPanelOpen,
+    setBookmarksPanelOpen, mediaGalleryOpen, setMediaGalleryOpen,
+    summaryPanelOpen, setSummaryPanelOpen, scheduledPanelOpen, setScheduledPanelOpen,
+  });
 
   // Auto mark-as-read on channel change
   useEffect(() => {
     if (!selectedChannelId || !userId) return;
     const timer = setTimeout(() => {
-      markAsRead.mutate({ channelId: selectedChannelId, userId });
+      handlers.markAsRead.mutate({ channelId: selectedChannelId, userId });
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChannelId, userId]);
 
-  // Re-mark-as-read when new messages arrive while viewing the channel
+  // Re-mark-as-read when new messages arrive
   const latestPageLen = messagesQuery.data?.pages?.[0]?.length ?? 0;
   useEffect(() => {
     if (!selectedChannelId || !userId || latestPageLen === 0) return;
     const timer = setTimeout(() => {
-      markAsRead.mutate({ channelId: selectedChannelId, userId });
+      handlers.markAsRead.mutate({ channelId: selectedChannelId, userId });
     }, 1000);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latestPageLen]);
 
-  const messages = flattenMessages(messagesQuery.data);
-  const selectedChannel = channels?.find((c) => c.id === selectedChannelId);
-  const canDeleteOthers = hasPermission(userRole, "chat.delete_messages");
-  const canCreateChannel = hasPermission(userRole, "chat.create_channel");
-  const canManageChannels = hasPermission(userRole, "chat.create_channel");
-
-  const myMemberRole = useMemo(() => {
-    if (!selectedChannel || !userId) return null;
-    return selectedChannel.chat_channel_members?.find((m) => m.user_id === userId)?.role ?? null;
-  }, [selectedChannel, userId]);
-
-  const canSendMessage = canPerformChannelAction("send_message", {
-    userRole,
-    channelMemberRole: myMemberRole,
-    channelSettings: (selectedChannel as Record<string, unknown>)?.settings as
-      | { who_can_post?: "everyone" | "admins"; is_read_only?: boolean }
-      | null
-      | undefined,
-    isCreator: selectedChannel?.created_by === userId,
-  });
-
-  const canPin = canPerformChannelAction("pin_message", {
-    userRole,
-    channelMemberRole: myMemberRole,
-    channelSettings: null,
-    isCreator: selectedChannel?.created_by === userId,
-  });
-
-  const profileMap = useMemo(() => buildProfileMap(profiles ?? []), [profiles]);
-
-  // Push notifications: build sender names from profileMap
-  const senderNames = useMemo(
-    () => Object.fromEntries(Object.entries(profileMap).map(([id, p]) => [id, p.name])),
-    [profileMap],
-  );
-  usePushNotifications({ channelNames, senderNames, notifPrefs: notifPrefsData ?? {} });
-
-  // #9 — Favicon badge with total unread count
-  const totalUnread = useChatStore((s) =>
-    Object.values(s.unreadCounts).reduce((sum, n) => sum + n, 0),
-  );
-  useFaviconBadge(totalUnread);
-
-  // #10 — Notification sound
-  useNotificationSound({ soundEnabled, notifPrefs: notifPrefsData ?? {} });
-
-  const mentionOptions: MentionOption[] = useMemo(() => {
-    if (!userId) return [];
-    const channelMemberIds = new Set(
-      (selectedChannel?.chat_channel_members ?? []).map((m) => m.user_id),
-    );
-    // Show ALL workspace profiles (not just channel members) so users can @mention anyone
-    const allUsers = Object.entries(profileMap)
-      .filter(([id, p]) => id !== userId && p.name && p.name !== "Usuário")
-      .map(([id, p]) => ({
-        id,
-        name: p.name,
-        avatarUrl: p.avatarUrl,
-        // Channel members first, then others
-        _inChannel: channelMemberIds.has(id),
-      }))
-      .sort((a, b) => (a._inChannel === b._inChannel ? 0 : a._inChannel ? -1 : 1))
-      .map(({ _inChannel, ...rest }) => rest);
-    // Prepend broadcast mentions for public channels (not DMs)
-    const isPublic = selectedChannel?.type === "channel" || selectedChannel?.type === "private";
-    return isPublic ? [...SPECIAL_MENTION_OPTIONS, ...allUsers] : allUsers;
-  }, [selectedChannel, userId, profileMap]);
+  function handleSelectChannel(id: string) {
+    const currentUnread = useChatStore.getState().unreadCounts[id] ?? 0;
+    setInitialUnreadCount(currentUnread);
+    setSelectedChannelId(id);
+    setShowConversation(true);
+  }
 
   const headerInfo = useMemo((): ConversationHeaderInfo | null => {
     if (!selectedChannel) return null;
-    const settings = (selectedChannel as Record<string, unknown>).settings as { is_read_only?: boolean; who_can_post?: "everyone" | "admins" } | null | undefined;
+    const settings = channelSettings;
     if (selectedChannel.type === "direct" && userId) {
       const other = selectedChannel.chat_channel_members?.find((m) => m.user_id !== userId);
       if (other) {
@@ -408,146 +237,11 @@ export function ChatLayout() {
       isReadOnly: settings?.is_read_only ?? false,
       whoCanPost: settings?.who_can_post ?? "everyone",
     };
-  }, [selectedChannel, userId, profileMap]);
-
-  // #23 — Last own message for ↑ to edit
-  const lastOwnMessage = useMemo(() => {
-    if (!userId) return null;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const msg = messages[i];
-      if (msg.sender_id === userId && msg.message_type === "text" && !msg.deleted_at) {
-        return msg;
-      }
-    }
-    return null;
-  }, [messages, userId]);
-
-  // Handlers
-  function handleSelectChannel(id: string) {
-    const currentUnread = useChatStore.getState().unreadCounts[id] ?? 0;
-    setInitialUnreadCount(currentUnread);
-    setSelectedChannelId(id);
-    setShowConversation(true);
-  }
-  function handleArchiveChannel(id: string) { archiveChannelMut.mutate(id); if (selectedChannelId === id) setSelectedChannelId(null); }
-  function handleDeleteChannel(id: string) { deleteChannelMut.mutate(id); if (selectedChannelId === id) setSelectedChannelId(null); }
-  function handleUnarchiveChannel(id: string) { unarchiveChannelMut.mutate(id); }
-  function handleMoveToSection(channelId: string, sectionId: string | null) { updateChannelMut.mutate({ id: channelId, updates: { section_id: sectionId } }); }
-  function handleCreateSection(name: string) { createSectionMut.mutate({ name }); }
-  function handleRenameSection(id: string, name: string) { updateSectionMut.mutate({ id, updates: { name } }); }
-  function handleDeleteSection(id: string) { deleteSectionMut.mutate(id); }
-  // #31 — Update channel topic (description)
-  function handleUpdateTopic(channelId: string, description: string) {
-    updateChannelMut.mutate({ id: channelId, updates: { description: description || null } });
-  }
-  async function handleMentionClick(mentionedUserId: string) {
-    if (!userId || !tenantId || mentionedUserId === userId) return;
-    // Check if there's already a DM with this user in loaded channels
-    const existingDM = channels?.find(
-      (ch) =>
-        ch.type === "direct" &&
-        ch.chat_channel_members?.some((m) => m.user_id === mentionedUserId),
-    );
-    if (existingDM) {
-      handleSelectChannel(existingDM.id);
-      return;
-    }
-    // Create or find DM channel
-    try {
-      const { createClient } = await import("@/lib/supabase/client");
-      const { findOrCreateDirectChannel } = await import("@/features/chat/services/chat");
-      const supabase = createClient();
-      const dm = await findOrCreateDirectChannel(supabase, tenantId, userId, mentionedUserId);
-      await qc.invalidateQueries({ queryKey: ["chat-channels-members"] });
-      handleSelectChannel(dm.id);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro desconhecido";
-      toast.error(`Falha ao abrir conversa: ${msg}`);
-    }
-  }
-
-  function handleEdit(messageId: string, content: string) { editMsg.mutate({ messageId, content }); }
-  function handleDelete(messageId: string) { deleteMsg.mutate({ messageId }); }
-  function handleTogglePin(messageId: string, pinned: boolean) { togglePin.mutate({ messageId, pinned }); }
-
-  function handleReact(messageId: string, emoji: string, remove: boolean) {
-    if (!userId) return;
-    if (remove) {
-      removeReaction.mutate({ messageId, userId, emoji });
-    } else {
-      addReaction.mutate({ message_id: messageId, user_id: userId, emoji });
-    }
-  }
-
-  const handleScrollToMessage = useCallback((messageId: string) => {
-    const el = document.getElementById(`msg-${messageId}`);
-    if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("bg-primary/10"); setTimeout(() => el.classList.remove("bg-primary/10"), 2000); }
-  }, []);
-
-  async function handleSend(content: string, files?: File[], messageType?: string, scheduledAt?: Date) {
-    if (!selectedChannelId || !tenantId || !userId) return;
-    // #14 — Scheduled message: store with scheduled_at, don't send to normal stream
-    if (scheduledAt) {
-      sendScheduledMsg.mutate({
-        channel_id: selectedChannelId,
-        sender_id: userId,
-        content,
-        message_type: messageType ?? "text",
-        scheduled_at: scheduledAt.toISOString(),
-      } as never);
-      return;
-    }
-    const msgType = messageType ?? (files?.length ? "file" : "text");
-    let message;
-    try {
-      message = await sendMsg.mutateAsync({ channel_id: selectedChannelId, sender_id: userId, content, message_type: msgType });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro desconhecido";
-      toast.error(`Falha ao enviar mensagem: ${msg}`);
-      return;
-    }
-    const supabase = (await import("@/lib/supabase/client")).createClient();
-    // Collect direct @user mentions (UUIDs)
-    const mentionedIds = extractMentionIds(content);
-    // Expand broadcast mentions (@channel / @here) to actual member IDs
-    const broadcast = hasBroadcastMention(content);
-    if (broadcast.channel || broadcast.here) {
-      const memberIds = (selectedChannel?.chat_channel_members ?? [])
-        .map((m) => m.user_id)
-        .filter((id) => id !== userId); // exclude self
-      for (const id of memberIds) {
-        if (!mentionedIds.includes(id)) mentionedIds.push(id);
-      }
-    }
-    if (mentionedIds.length > 0) {
-      const senderName = profileMap[userId]?.name ?? "Alguém";
-      const channelName = selectedChannel?.name ?? "chat";
-      notifyOnChatMention(supabase, { tenantId, senderId: userId, senderName, channelId: selectedChannelId, channelName, messageContent: content, mentionedUserIds: mentionedIds }).catch(() => {});
-    }
-    if (files?.length && message?.id) {
-      const toastId = toast.loading(`Enviando ${files.length} arquivo${files.length > 1 ? "s" : ""}...`);
-      // #41 — Compress images before upload
-      const processedFiles = await compressFiles(files);
-      // #42 — Get channel upload limit
-      const uploadLimitBytes = await getChannelUploadLimitBytes(supabase, selectedChannelId).catch(() => 10 * 1024 * 1024);
-      let successCount = 0; let failCount = 0;
-      for (const file of processedFiles) {
-        try { const { url } = await uploadChatFile(supabase, tenantId, selectedChannelId, file, uploadLimitBytes); await createAttachmentRecord(supabase, message.id, file, url); successCount++; }
-        catch (err) {
-          failCount++;
-          if (err instanceof Error && err.message.includes("excede")) {
-            toast.error(err.message, { id: undefined });
-          }
-        }
-      }
-      if (failCount === 0) { toast.success(`${successCount} arquivo${successCount > 1 ? "s" : ""} enviado${successCount > 1 ? "s" : ""}`, { id: toastId }); }
-      else { toast.error(`${failCount} arquivo${failCount > 1 ? "s" : ""} falhou. ${successCount} enviado${successCount > 1 ? "s" : ""}.`, { id: toastId }); }
-    }
-  }
+  }, [selectedChannel, userId, profileMap, channelSettings]);
 
   return (
     <div className="flex h-[calc(100vh-8rem)] rounded-xl border bg-background overflow-hidden">
-      {/* #49 — Resizable sidebar wrapper */}
+      {/* Resizable sidebar */}
       <div style={{ width: sidebarWidth, flexShrink: 0 }} className={cn(showConversation ? "hidden md:block" : "block")}>
         <ChatSidebar
           channels={channels}
@@ -562,20 +256,18 @@ export function ChatLayout() {
           canManageChannels={canManageChannels}
           showConversation={showConversation}
           onSelectChannel={handleSelectChannel}
-          onArchiveChannel={handleArchiveChannel}
-          onDeleteChannel={handleDeleteChannel}
-          onUnarchiveChannel={handleUnarchiveChannel}
-          onMoveToSection={handleMoveToSection}
-          onCreateSection={handleCreateSection}
-          onRenameSection={handleRenameSection}
-          onDeleteSection={handleDeleteSection}
+          onArchiveChannel={handlers.handleArchiveChannel}
+          onDeleteChannel={handlers.handleDeleteChannel}
+          onUnarchiveChannel={handlers.handleUnarchiveChannel}
+          onMoveToSection={handlers.handleMoveToSection}
+          onCreateSection={handlers.handleCreateSection}
+          onRenameSection={handlers.handleRenameSection}
+          onDeleteSection={handlers.handleDeleteSection}
           favoriteIds={favoriteIds}
           onToggleFavorite={toggleFavorite}
           mutedChannelIds={mutedChannelIds}
           onMuteToggle={handleMuteToggle}
-          onMarkAsRead={(channelId) => {
-            if (userId) markAsRead.mutate({ channelId, userId });
-          }}
+          onMarkAsRead={handlers.handleMarkAsRead}
           onOpenSettings={(channelId) => {
             handleSelectChannel(channelId);
             setTimeout(() => setChannelSettingsOpen(true), 100);
@@ -592,10 +284,10 @@ export function ChatLayout() {
         title="Arrastar para redimensionar"
       />
 
-      {/* Conversation area + thread panel */}
+      {/* Conversation area + panels */}
       <div className={cn("relative flex flex-1 min-w-0 overflow-hidden", !showConversation && "hidden md:flex")}>
         <MessageSearch channels={channels ?? []} currentChannelId={selectedChannelId} />
-        {/* Main chat column */}
+
         <div className="flex flex-1 flex-col min-w-0">
           {selectedChannel && headerInfo ? (
             <>
@@ -605,13 +297,13 @@ export function ChatLayout() {
                 profileMap={profileMap}
                 onBack={() => setShowConversation(false)}
                 onOpenBookmarks={() => setBookmarksPanelOpen(true)}
-                onJumpToMessage={handleScrollToMessage}
+                onJumpToMessage={handlers.handleScrollToMessage}
                 canEditTopic={canManageChannels || selectedChannel?.created_by === userId}
-                onUpdateTopic={handleUpdateTopic}
+                onUpdateTopic={handlers.handleUpdateTopic}
                 onOpenMediaGallery={() => setMediaGalleryOpen((v) => !v)}
                 onOpenSummary={() => setSummaryPanelOpen((v) => !v)}
               />
-              <PinnedBanner channelId={selectedChannelId} profileMap={profileMap} onClickMessage={handleScrollToMessage} />
+              <PinnedBanner channelId={selectedChannelId} profileMap={profileMap} onClickMessage={handlers.handleScrollToMessage} />
               {messagesQuery.isLoading ? (
                 <MessageListSkeleton />
               ) : (
@@ -623,10 +315,10 @@ export function ChatLayout() {
                   isFetchingNextPage={messagesQuery.isFetchingNextPage}
                   fetchNextPage={messagesQuery.fetchNextPage}
                   channelId={selectedChannelId}
-                  onEditMessage={handleEdit}
-                  onDeleteMessage={handleDelete}
-                  onTogglePin={canPin ? handleTogglePin : undefined}
-                  onReact={handleReact}
+                  onEditMessage={handlers.handleEdit}
+                  onDeleteMessage={handlers.handleDelete}
+                  onTogglePin={canPin ? handlers.handleTogglePin : undefined}
+                  onReact={handlers.handleReact}
                   onOpenThread={setThreadMessage}
                   onForwardMessage={setForwardMessage}
                   onBookmark={handleBookmark}
@@ -634,19 +326,19 @@ export function ChatLayout() {
                   canDeleteOthers={canDeleteOthers}
                   onCreateTask={setTaskSourceMessage}
                   initialUnreadCount={initialUnreadCount}
-                  onMentionClick={handleMentionClick}
+                  onMentionClick={handlers.handleMentionClick}
                 />
               )}
               <TypingIndicator channelId={selectedChannelId} />
               <MessageInput
-                onSend={handleSend}
-                disabled={sendMsg.isPending || !canSendMessage}
+                onSend={handlers.handleSend}
+                disabled={handlers.sendMsg.isPending || !canSendMessage}
                 onTyping={sendTyping}
                 mentionOptions={mentionOptions}
                 scheduledCount={scheduledMessages?.length ?? 0}
                 onShowScheduled={() => setScheduledPanelOpen(true)}
                 lastOwnMessage={lastOwnMessage ?? undefined}
-                onEditLastMessage={(id, content) => handleEdit(id, content)}
+                onEditLastMessage={(id, content) => handlers.handleEdit(id, content)}
               />
             </>
           ) : (
@@ -657,7 +349,6 @@ export function ChatLayout() {
           )}
         </div>
 
-        {/* #11 — Thread panel */}
         {threadMessage && selectedChannelId && (
           <ThreadPanel
             parentMessage={threadMessage}
@@ -668,7 +359,6 @@ export function ChatLayout() {
           />
         )}
 
-        {/* #45 — AI summary panel */}
         {summaryPanelOpen && selectedChannelId && (
           <ChannelSummaryPanel
             channelId={selectedChannelId}
@@ -677,7 +367,6 @@ export function ChatLayout() {
           />
         )}
 
-        {/* #38 — Media gallery panel */}
         {mediaGalleryOpen && selectedChannelId && (
           <MediaGalleryPanel
             channelId={selectedChannelId}
@@ -697,7 +386,6 @@ export function ChatLayout() {
         />
       )}
 
-      {/* #14 — Scheduled messages panel */}
       <ScheduledMessagesPanel
         open={scheduledPanelOpen}
         onOpenChange={setScheduledPanelOpen}
@@ -705,27 +393,24 @@ export function ChatLayout() {
         isLoading={loadingScheduled}
         onCancel={(messageId) => {
           if (selectedChannelId) {
-            cancelScheduledMsg.mutate({ messageId, channelId: selectedChannelId });
+            handlers.cancelScheduledMsg.mutate({ messageId, channelId: selectedChannelId });
           }
         }}
       />
 
-      {/* #17 — Bookmarks panel */}
       <BookmarksPanel
         open={bookmarksPanelOpen}
         onOpenChange={setBookmarksPanelOpen}
         profileMap={profileMap}
-        onJumpToMessage={handleScrollToMessage}
+        onJumpToMessage={handlers.handleScrollToMessage}
       />
 
-      {/* #43 — Create task from message */}
       <CreateTaskFromMessageDialog
         message={taskSourceMessage}
         open={!!taskSourceMessage}
         onOpenChange={(open) => { if (!open) setTaskSourceMessage(null); }}
       />
 
-      {/* #12 — Forward message dialog */}
       <ForwardMessageDialog
         message={forwardMessage}
         senderName={forwardMessage?.sender_id ? (profileMap[forwardMessage.sender_id]?.name ?? "Usuário") : "Usuário"}
@@ -735,10 +420,8 @@ export function ChatLayout() {
         profileMap={profileMap}
       />
 
-      {/* #30 — Browse channels dialog */}
       <BrowseChannelsDialog onSelectChannel={handleSelectChannel} />
 
-      {/* #23 — Channel switcher (Ctrl+K) */}
       <ChannelSwitcher
         open={channelSwitcherOpen}
         onOpenChange={setChannelSwitcherOpen}
@@ -757,7 +440,7 @@ export function ChatLayout() {
   );
 }
 
-// ── #50 — Realistic message list skeleton ────────────────────────────
+// ── Skeleton ────────────────────────────────────────────────────────
 
 const SKELETON_ROWS = [
   { avatar: true, lines: [{ w: "w-24" }, { w: "w-64" }, { w: "w-48" }] },
@@ -777,9 +460,7 @@ function MessageListSkeleton() {
           key={i}
           className={cn("flex items-start gap-3", row.avatar ? "mt-3" : "mt-0.5 pl-11")}
         >
-          {row.avatar && (
-            <Skeleton className="h-8 w-8 rounded-full shrink-0" />
-          )}
+          {row.avatar && <Skeleton className="h-8 w-8 rounded-full shrink-0" />}
           <div className="flex flex-col gap-1.5 flex-1">
             {row.avatar && <Skeleton className="h-3 w-24" />}
             {row.lines.map((line, j) => (

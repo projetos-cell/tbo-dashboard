@@ -121,7 +121,7 @@ export function BlogPostsList() {
           <h1 className="text-2xl font-bold tracking-tight">Blog</h1>
           <p className="text-sm text-muted-foreground mt-1">Gerencie os artigos do blog da empresa</p>
         </div>
-        <Button onClick={() => router.push("/blog/novo")} size="sm">
+        <Button onClick={() => router.push("/cultura/blog/novo")} size="sm">
           <IconPlus className="h-4 w-4 mr-1.5" />Novo Artigo
         </Button>
       </div>
@@ -222,7 +222,7 @@ export function BlogPostsList() {
             {hasFilters ? "Tente ajustar os filtros de busca" : "Crie seu primeiro artigo para comecar"}
           </p>
           {!hasFilters && (
-            <Button onClick={() => router.push("/blog/novo")} size="sm">
+            <Button onClick={() => router.push("/cultura/blog/novo")} size="sm">
               <IconPlus className="h-4 w-4 mr-1.5" />Criar Artigo
             </Button>
           )}

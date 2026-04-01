@@ -10,9 +10,7 @@ import {
   toggleAnnotationResolved,
   deleteFileAnnotation,
 } from "@/features/projects/services/file-annotations";
-import type { Database } from "@/lib/supabase/types";
-
-type FileAnnotationInsert = Database["public"]["Tables"]["file_annotations"]["Insert"];
+import type { FileAnnotationInsert } from "@/features/projects/services/file-annotations";
 
 export function useFileAnnotations(fileId: string | undefined) {
   const supabase = createClient();

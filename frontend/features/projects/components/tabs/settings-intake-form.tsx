@@ -164,6 +164,8 @@ export function SettingsIntakeForm({ projectId }: SettingsIntakeFormProps) {
             createIntakeForm.mutate({
               project_id: projectId,
               tenant_id: tenantId,
+              title: "Formulário de Intake",
+              token: crypto.randomUUID(),
             });
           }}
         >

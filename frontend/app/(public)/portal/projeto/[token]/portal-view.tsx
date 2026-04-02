@@ -1,23 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { PortalLayout } from "@/features/projects/components/portal/portal-layout";
+import { PortalHeader } from "@/features/projects/components/portal/portal-header";
+import { PortalSidebar } from "@/features/projects/components/portal/portal-sidebar";
+import { PortalWelcomeBanner } from "@/features/projects/components/portal/portal-welcome-banner";
+import {
+  PortalMainTabs,
+  type PortalTabId,
+} from "@/features/projects/components/portal/portal-main-tabs";
+import { PortalFilesTab, type PortalFile } from "@/features/projects/components/portal/portal-files-tab";
+import { PortalReportsTab } from "@/features/projects/components/portal/portal-reports-tab";
+import { PortalLatestDocs } from "@/features/projects/components/portal/portal-latest-docs";
+import { PortalTrackStepper, type TrackPhase } from "@/features/projects/components/portal/portal-track-stepper";
+import { PortalAboutSection } from "@/features/projects/components/portal/portal-about-section";
+import { Badge } from "@/components/ui/badge";
 import {
   IconCircleCheck,
   IconClock,
-  IconPlayerPlay,
-  IconEye,
   IconCheck,
-  IconX,
-  IconMessage,
-  IconChevronDown,
-  IconChevronUp,
-  IconActivity,
-  IconTimeline,
-  IconMessageCircle,
-  IconListDetails,
+  IconExternalLink,
+  IconPackage,
 } from "@tabler/icons-react";
-import { PortalTimeline } from "./portal-timeline";
-import { PortalFeedback } from "./portal-feedback";
+import { cn } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -27,10 +32,13 @@ interface PortalTask {
   status: string;
   is_completed: boolean;
   due_date: string | null;
+  priority: string | null;
+  section_id: string | null;
   requires_client_approval: boolean | null;
   client_approval_status: string | null;
   client_approval_comment: string | null;
   client_approval_at: string | null;
+  completed_at: string | null;
 }
 
 interface StatusUpdate {
@@ -49,491 +57,335 @@ interface PortalProject {
   client_company: string | null;
   due_date_start: string | null;
   due_date_end: string | null;
+  tenant_id: string;
+}
+
+interface Section {
+  id: string;
+  title: string;
+  color: string | null;
+  order_index: number;
 }
 
 interface ProjectPortalViewProps {
   project: PortalProject;
   tasks: PortalTask[];
+  projectFiles: PortalFile[];
+  chatMessages: unknown[];
+  sections: Section[];
   latestUpdate: StatusUpdate | null;
   progressPercent: number;
   completedCount: number;
+  inProgressCount: number;
+  overdueCount: number;
   totalCount: number;
   token: string;
+  deliveryToken: string | null;
   pendingApprovals: number;
   commentsCount: number;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<string, string> = {
-  em_andamento: "Em andamento",
-  revisao: "Em revisao",
-  concluida: "Concluida",
-};
-
-const STATUS_UPDATE_LABELS: Record<string, { label: string; color: string }> = {
-  on_track: { label: "No prazo", color: "#22c55e" },
-  at_risk: { label: "Em risco", color: "#f59e0b" },
-  off_track: { label: "Atrasado", color: "#ef4444" },
-  on_hold: { label: "Pausado", color: "#6b7280" },
-  complete: { label: "Concluido", color: "#3b82f6" },
+const PRIORITY_COLORS: Record<string, string> = {
+  urgente: "bg-red-100 text-red-700",
+  alta: "bg-amber-100 text-amber-700",
+  media: "bg-blue-100 text-blue-700",
+  baixa: "bg-zinc-100 text-zinc-600",
 };
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "\u2014";
   return new Date(dateStr).toLocaleDateString("pt-BR", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   });
 }
 
-function getHealthColor(percent: number): string {
-  if (percent >= 75) return "#22c55e";
-  if (percent >= 40) return "#f59e0b";
-  return "#ef4444";
-}
-
-// ─── Tabs ───────────────────────────────────────────────────────────────────
-
-type TabId = "overview" | "deliverables" | "timeline" | "feedback";
-
-interface TabDef {
-  id: TabId;
-  label: string;
-  icon: typeof IconActivity;
-  badge?: number;
-}
-
-// ─── Component ──────────────────────────────────────────────────────────────
+// ─── Main Component ─────────────────────────────────────────────────────────
 
 export function ProjectPortalView({
   project,
   tasks,
+  projectFiles,
+  sections,
   latestUpdate,
   progressPercent,
   completedCount,
+  inProgressCount,
+  overdueCount,
   totalCount,
   token,
+  deliveryToken,
   pendingApprovals,
-  commentsCount,
 }: ProjectPortalViewProps) {
-  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [activeTab, setActiveTab] = useState<PortalTabId>("tasks");
+  const [activeNav, setActiveNav] = useState("home");
+  const [sidebarItem, setSidebarItem] = useState("home");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const tabs: TabDef[] = [
-    { id: "overview", label: "Visao Geral", icon: IconActivity },
-    {
-      id: "deliverables",
-      label: "Entregas",
-      icon: IconListDetails,
-      badge: pendingApprovals > 0 ? pendingApprovals : undefined,
-    },
-    { id: "timeline", label: "Timeline", icon: IconTimeline },
-    {
-      id: "feedback",
-      label: "Feedback",
-      icon: IconMessageCircle,
-      badge: commentsCount > 0 ? commentsCount : undefined,
-    },
-  ];
+  // Delivery link (unique per project from project_deliveries)
+  const deliverySlug = deliveryToken;
 
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <header className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg text-lg font-semibold text-white"
-            style={{ background: "linear-gradient(135deg, #e85102, #c44000)" }}
-          >
-            {project.name?.charAt(0)?.toUpperCase() ?? "P"}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#1a1a2e]">
-              {project.name}
-            </h1>
-            {(project.client || project.client_company) && (
-              <p className="text-sm text-[#4a5f7a]">
-                {project.client_company ?? project.client}
-              </p>
-            )}
-          </div>
-        </div>
-        {(project.due_date_start || project.due_date_end) && (
-          <p className="mt-2 text-xs text-[#4a5f7a]">
-            <IconClock className="mr-1 inline-block size-3.5" />
-            {formatDate(project.due_date_start)} —{" "}
-            {formatDate(project.due_date_end)}
-          </p>
-        )}
-      </header>
-
-      {/* ── Tab Navigation ──────────────────────────────────────── */}
-      <nav className="mb-6 flex gap-1 overflow-x-auto rounded-lg border border-[#e5e7eb] bg-white p-1 shadow-sm">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-[#1a1a2e] text-white shadow-sm"
-                  : "text-[#4a5f7a] hover:bg-[#f5f5f5] hover:text-[#1a1a2e]"
-              }`}
-            >
-              <Icon className="size-4" />
-              {tab.label}
-              {tab.badge !== undefined && (
-                <span
-                  className={`ml-1 flex size-5 items-center justify-center rounded-full text-[10px] font-semibold ${
-                    isActive
-                      ? "bg-white/20 text-white"
-                      : "bg-[#e85102] text-white"
-                  }`}
-                >
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* ── Tab Content ─────────────────────────────────────────── */}
-      {activeTab === "overview" && (
-        <OverviewTab
-          progressPercent={progressPercent}
-          completedCount={completedCount}
-          totalCount={totalCount}
-          latestUpdate={latestUpdate}
-        />
-      )}
-
-      {activeTab === "deliverables" && (
-        <DeliverablesTab tasks={tasks} token={token} />
-      )}
-
-      {activeTab === "timeline" && <PortalTimeline token={token} />}
-
-      {activeTab === "feedback" && (
-        <PortalFeedback token={token} projectId={project.id} />
-      )}
-
-      {/* ── Footer ─────────────────────────────────────────────── */}
-      <footer className="mt-10 text-center text-xs text-[#9ca3af]">
-        Powered by <span className="font-medium text-[#e85102]">TBO OS</span>
-      </footer>
-    </div>
-  );
-}
-
-// ─── Overview Tab ──────────────────────────────────────────────────────────
-
-function OverviewTab({
-  progressPercent,
-  completedCount,
-  totalCount,
-  latestUpdate,
-}: {
-  progressPercent: number;
-  completedCount: number;
-  totalCount: number;
-  latestUpdate: StatusUpdate | null;
-}) {
-  return (
-    <div className="space-y-6">
-      {/* Progress Card */}
-      <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-[#1a1a2e]">Progresso</h2>
-          <span
-            className="rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
-            style={{ backgroundColor: getHealthColor(progressPercent) }}
-          >
-            {progressPercent}%
-          </span>
-        </div>
-        <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#f0f0f0]">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${progressPercent}%`,
-              backgroundColor: getHealthColor(progressPercent),
-            }}
-          />
-        </div>
-        <p className="mt-2 text-xs text-[#4a5f7a]">
-          {completedCount} de {totalCount} entregas concluidas
-        </p>
-      </div>
-
-      {/* Latest Status Update */}
-      {latestUpdate && (
-        <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-[#1a1a2e] flex items-center gap-1.5">
-              <IconActivity className="size-4" />
-              Ultima atualizacao
-            </h2>
-            {STATUS_UPDATE_LABELS[latestUpdate.status] && (
-              <span
-                className="rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
-                style={{
-                  backgroundColor:
-                    STATUS_UPDATE_LABELS[latestUpdate.status]?.color ??
-                    "#6b7280",
-                }}
-              >
-                {STATUS_UPDATE_LABELS[latestUpdate.status]?.label}
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-[#374151] leading-relaxed">
-            {latestUpdate.summary}
-          </p>
-          <p className="mt-2 text-xs text-[#9ca3af]">
-            {latestUpdate.author_name && `${latestUpdate.author_name} \u00B7 `}
-            {formatDate(latestUpdate.created_at)}
-          </p>
-        </div>
-      )}
-
-      {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-[#e5e7eb] bg-white p-4 text-center shadow-sm">
-          <p className="text-2xl font-bold text-[#1a1a2e]">{totalCount}</p>
-          <p className="text-xs text-[#9ca3af]">Total entregas</p>
-        </div>
-        <div className="rounded-xl border border-[#e5e7eb] bg-white p-4 text-center shadow-sm">
-          <p className="text-2xl font-bold text-[#22c55e]">{completedCount}</p>
-          <p className="text-xs text-[#9ca3af]">Concluidas</p>
-        </div>
-        <div className="rounded-xl border border-[#e5e7eb] bg-white p-4 text-center shadow-sm">
-          <p className="text-2xl font-bold text-[#3b82f6]">
-            {totalCount - completedCount}
-          </p>
-          <p className="text-xs text-[#9ca3af]">Em andamento</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Deliverables Tab ──────────────────────────────────────────────────────
-
-function DeliverablesTab({
-  tasks,
-  token,
-}: {
-  tasks: PortalTask[];
-  token: string;
-}) {
-  // Sort: pending approval first, then in progress, then completed
-  const sorted = [...tasks].sort((a, b) => {
-    const aPending =
-      a.requires_client_approval &&
-      (a.client_approval_status === "pending" ||
-        a.client_approval_status === "none");
-    const bPending =
-      b.requires_client_approval &&
-      (b.client_approval_status === "pending" ||
-        b.client_approval_status === "none");
-    if (aPending && !bPending) return -1;
-    if (!aPending && bPending) return 1;
-    if (a.is_completed && !b.is_completed) return 1;
-    if (!a.is_completed && b.is_completed) return -1;
-    return 0;
-  });
-
-  return (
-    <div className="rounded-xl border border-[#e5e7eb] bg-white shadow-sm">
-      <div className="border-b border-[#e5e7eb] px-5 py-4">
-        <h2 className="text-sm font-semibold text-[#1a1a2e]">Entregas</h2>
-      </div>
-      {sorted.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm text-[#9ca3af]">
-          Nenhuma entrega visivel no momento.
-        </div>
-      ) : (
-        <ul className="divide-y divide-[#f0f0f0]">
-          {sorted.map((task) => (
-            <DeliverableRow key={task.id} task={task} token={token} />
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-// ─── Deliverable Row ────────────────────────────────────────────────────────
-
-function DeliverableRow({
-  task,
-  token,
-}: {
-  task: PortalTask;
-  token: string;
-}) {
-  const [approvalStatus, setApprovalStatus] = useState(
-    task.client_approval_status,
-  );
-  const [comment, setComment] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const needsApproval =
-    task.requires_client_approval &&
-    (approvalStatus === "pending" || approvalStatus === "none");
-
-  const handleApproval = async (status: "approved" | "rejected") => {
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/portal/approve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          taskId: task.id,
-          status,
-          comment: comment.trim() || undefined,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? "Erro ao salvar aprovacao");
-      }
-
-      setApprovalStatus(status);
-      setShowForm(false);
-      setComment("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado");
-    } finally {
-      setSubmitting(false);
+  // Build stepper phases
+  const phases = useMemo<TrackPhase[]>(() => {
+    if (sections.length === 0) {
+      return [
+        { key: "briefing", label: "Briefing", status: "completed" },
+        { key: "creation", label: "Criacao", status: "completed" },
+        { key: "execution", label: "Execucao", status: "completed" },
+        { key: "delivery", label: "Entrega", status: hasPendingTasks ? "in_progress" : "completed" },
+      ];
     }
-  };
+    return sections.map((s) => {
+      const sectionTasks = tasks.filter((t) => t.section_id === s.id);
+      const allDone = sectionTasks.length > 0 && sectionTasks.every((t) => t.is_completed);
+      const someActive = sectionTasks.some((t) => !t.is_completed);
+      return {
+        key: s.id,
+        label: s.title,
+        status: allDone ? "completed" : someActive ? "in_progress" : "pending",
+      } satisfies TrackPhase;
+    });
+  }, [sections, tasks, progressPercent]);
+
+  const hasPendingTasks = tasks.some((t) => !t.is_completed);
+  const healthLabel = !hasPendingTasks ? "Entregue" : progressPercent >= 90 ? "Em entrega" : progressPercent >= 75 ? "No prazo" : "Em risco";
+  const healthColor = !hasPendingTasks ? "#22c55e" : progressPercent >= 90 ? "#3b82f6" : progressPercent >= 75 ? "#22c55e" : "#f59e0b";
+  const healthBg = !hasPendingTasks ? "#f0fdf4" : progressPercent >= 90 ? "#eff6ff" : progressPercent >= 75 ? "#f0fdf4" : "#fefce8";
+
+  // Sidebar documents from project files (non-image)
+  const sidebarDocs = useMemo(
+    () =>
+      projectFiles
+        .filter((f) => !f.mime_type?.includes("image") && !f.mime_type?.includes("video"))
+        .slice(0, 10)
+        .map((f) => ({ id: f.id, name: f.name, type: f.mime_type ?? "" })),
+    [projectFiles]
+  );
+
+  // Tasks sorted: incomplete first, then by priority
+  const sortedTasks = useMemo(
+    () => [...tasks].sort((a, b) => {
+      if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+      if (a.is_completed && b.is_completed) {
+        const da = a.completed_at ?? a.due_date ?? "";
+        const db = b.completed_at ?? b.due_date ?? "";
+        return db.localeCompare(da);
+      }
+      const priorities = ["urgente", "alta", "media", "baixa"];
+      return priorities.indexOf(a.priority ?? "baixa") - priorities.indexOf(b.priority ?? "baixa");
+    }),
+    [tasks]
+  );
 
   return (
-    <li className="px-5 py-4">
-      <div className="flex items-start gap-3">
-        {/* Status icon */}
-        <div className="mt-0.5">
-          {task.is_completed ? (
-            <IconCircleCheck className="size-5 text-[#22c55e]" />
-          ) : task.status === "revisao" ? (
-            <IconEye className="size-5 text-[#f59e0b]" />
-          ) : (
-            <IconPlayerPlay className="size-5 text-[#3b82f6]" />
-          )}
-        </div>
+    <PortalLayout
+      sidebarCollapsed={sidebarCollapsed}
+      header={
+        <PortalHeader
+          projectName={project.name}
+          clientName={project.client}
+          clientCompany={project.client_company}
+          pendingApprovals={pendingApprovals}
+          onNavChange={setActiveNav}
+          activeNav={activeNav}
+        />
+      }
+      sidebar={
+        <PortalSidebar
+          projectName={project.name}
+          clientCompany={project.client_company}
+          activeItem={sidebarItem}
+          onItemChange={setSidebarItem}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          documents={sidebarDocs}
+        />
+      }
+      main={activeNav === "about" ? (
+          <PortalAboutSection projectName={project.name} clientCompany={project.client_company} />
+        ) : (
+        <div className="space-y-6">
+          {/* Welcome Banner */}
+          <PortalWelcomeBanner
+            clientName={project.client}
+            projectName={project.name}
+          />
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span
-              className={`text-sm font-medium ${
-                task.is_completed
-                  ? "text-[#9ca3af] line-through"
-                  : "text-[#1a1a2e]"
-              }`}
-            >
-              {task.title}
-            </span>
-            <span className="shrink-0 text-xs text-[#9ca3af]">
-              {STATUS_LABELS[task.status] ?? task.status}
-            </span>
-          </div>
+          {/* Delivery Link Card */}
+          {deliverySlug && <a
+            href={`/entrega/${deliverySlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-center gap-4 rounded-xl border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-5 transition-all hover:border-orange-300 hover:shadow-md"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100">
+              <IconPackage className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-zinc-900">
+                Portal de Entrega — {project.name}
+              </h3>
+              <p className="mt-0.5 text-sm text-zinc-500">
+                Acesse todos os entregaveis finais do projeto
+              </p>
+            </div>
+            <IconExternalLink className="h-5 w-5 text-orange-400 transition-transform group-hover:translate-x-0.5" />
+          </a>}
 
-          {task.due_date && (
-            <p className="mt-0.5 text-xs text-[#9ca3af]">
-              Prazo: {formatDate(task.due_date)}
-            </p>
-          )}
+          {/* Main Tabs */}
+          <PortalMainTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-          {/* Approval badge (already decided) */}
-          {task.requires_client_approval &&
-            approvalStatus !== "none" &&
-            approvalStatus !== "pending" && (
-              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                {approvalStatus === "approved" ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2.5 py-0.5 text-xs font-medium text-[#166534]">
-                    <IconCheck className="size-3" />
-                    Aprovado
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#fee2e2] px-2.5 py-0.5 text-xs font-medium text-[#991b1b]">
-                    <IconX className="size-3" />
-                    Rejeitado
-                  </span>
-                )}
-                {task.client_approval_comment && (
-                  <span className="text-xs text-[#6b7280] flex items-center gap-1">
-                    <IconMessage className="size-3" />
-                    {task.client_approval_comment}
-                  </span>
-                )}
-              </div>
-            )}
+          {/* Tab Content */}
+          {activeTab === "tasks" && (
+            <div className="space-y-6">
+              {/* Project Progress Stepper */}
+              <PortalTrackStepper
+                phases={phases}
+                healthLabel={healthLabel}
+                healthColor={healthColor}
+                healthBg={healthBg}
+                dueDate={project.due_date_end}
+              />
 
-          {/* Pending approval — toggle form */}
-          {needsApproval && (
-            <div className="mt-2">
-              <button
-                type="button"
-                onClick={() => setShowForm(!showForm)}
-                className="inline-flex items-center gap-1 rounded-md border border-[#e85102] bg-[#fff7ed] px-3 py-1.5 text-xs font-medium text-[#e85102] transition-colors hover:bg-[#ffedd5]"
-              >
-                Aprovar / Rejeitar
-                {showForm ? (
-                  <IconChevronUp className="size-3" />
-                ) : (
-                  <IconChevronDown className="size-3" />
-                )}
-              </button>
+              {/* Client Tasks */}
+              <div className="rounded-xl border bg-white">
+                <div className="flex items-center justify-between border-b px-5 py-3">
+                  <h3 className="text-sm font-semibold text-zinc-900">
+                    Tarefas do Projeto
+                  </h3>
+                  <Badge variant="secondary" className="text-xs">
+                    {completedCount}/{totalCount} concluidas
+                  </Badge>
+                </div>
 
-              {showForm && (
-                <div className="mt-3 rounded-lg border border-[#e5e7eb] bg-[#fafafa] p-4 space-y-3">
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Comentario (opcional)"
-                    rows={2}
-                    className="w-full resize-none rounded-md border border-[#d1d5db] bg-white px-3 py-2 text-sm text-[#374151] placeholder:text-[#9ca3af] focus:border-[#e85102] focus:outline-none focus:ring-1 focus:ring-[#e85102]"
-                  />
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      onClick={() => handleApproval("approved")}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-[#22c55e] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[#16a34a] disabled:opacity-50"
+                <div className="divide-y">
+                  {sortedTasks.length === 0 && (
+                    <div className="px-5 py-8 text-center">
+                      <IconCircleCheck className="mx-auto h-8 w-8 text-green-400" />
+                      <p className="mt-2 text-sm text-zinc-500">
+                        Nenhuma tarefa cadastrada ainda.
+                      </p>
+                    </div>
+                  )}
+
+                  {!hasPendingTasks && sortedTasks.length > 0 && (
+                    <div className="flex items-center gap-3 bg-green-50/50 px-5 py-3">
+                      <IconCircleCheck className="h-5 w-5 text-green-500" />
+                      <p className="text-sm font-medium text-green-700">
+                        Todas as {totalCount} tarefas foram concluidas com sucesso!
+                      </p>
+                    </div>
+                  )}
+                  {hasPendingTasks && (
+                    <div className="flex items-center gap-3 bg-blue-50/50 px-5 py-3">
+                      <IconClock className="h-5 w-5 text-blue-500" />
+                      <p className="text-sm font-medium text-blue-700">
+                        {completedCount} de {totalCount} concluidas — {totalCount - completedCount} pendente{totalCount - completedCount !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  )}
+
+                  {sortedTasks.slice(0, 20).map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-zinc-50"
                     >
-                      <IconCheck className="size-3.5" />
-                      {submitting ? "Salvando..." : "Aprovar"}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      onClick={() => handleApproval("rejected")}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-[#ef4444] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[#dc2626] disabled:opacity-50"
-                    >
-                      <IconX className="size-3.5" />
-                      {submitting ? "Salvando..." : "Rejeitar"}
-                    </button>
-                  </div>
-                  {error && (
-                    <p className="text-xs text-[#ef4444]">{error}</p>
+                      {/* Status circle */}
+                      <div
+                        className={cn(
+                          "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2",
+                          task.is_completed
+                            ? "border-green-500 bg-green-500"
+                            : task.status === "em_andamento"
+                              ? "border-blue-400"
+                              : "border-zinc-300"
+                        )}
+                      >
+                        {task.is_completed && (
+                          <IconCheck className="h-3 w-3 text-white" />
+                        )}
+                      </div>
+
+                      {/* Title */}
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={cn(
+                            "text-sm",
+                            task.is_completed
+                              ? "text-zinc-400 line-through"
+                              : "text-zinc-800"
+                          )}
+                        >
+                          {task.title}
+                        </p>
+                      </div>
+
+                      {/* Priority */}
+                      {task.priority && task.priority !== "media" && !task.is_completed && (
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "text-[10px]",
+                            PRIORITY_COLORS[task.priority] ?? ""
+                          )}
+                        >
+                          {task.priority === "urgente"
+                            ? "Urgente"
+                            : task.priority === "alta"
+                              ? "Alta"
+                              : task.priority}
+                        </Badge>
+                      )}
+
+                      {/* Due date */}
+                      {task.due_date && (
+                        <span className="flex-shrink-0 text-xs text-zinc-400">
+                          {formatDate(task.due_date)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+
+                  {sortedTasks.length > 20 && (
+                    <div className="px-5 py-3 text-center text-xs text-zinc-400">
+                      +{sortedTasks.length - 20} tarefas adicionais
+                    </div>
                   )}
                 </div>
-              )}
+              </div>
             </div>
           )}
+
+          {activeTab === "files" && (
+            <PortalFilesTab files={projectFiles} />
+          )}
+
+          {activeTab === "reports" && (
+            <PortalReportsTab
+              taskSummary={{
+                total: totalCount,
+                completed: completedCount,
+                inProgress: inProgressCount,
+                overdue: overdueCount,
+                pendingApprovals,
+              }}
+              progressPercent={progressPercent}
+              dueDate={project.due_date_end}
+              projectStatus={project.status}
+              latestUpdate={latestUpdate}
+            />
+          )}
+          </div>
+        )
+      }
+      rightPanel={
+        <div className="p-4">
+          <PortalLatestDocs files={projectFiles} maxItems={6} />
         </div>
-      </div>
-    </li>
+      }
+    />
   );
 }

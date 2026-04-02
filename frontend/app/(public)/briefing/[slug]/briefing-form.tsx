@@ -104,6 +104,12 @@ export function BriefingForm({
     ],
   };
 
+  const isSectionIncomplete = (section: number) => {
+    const required = sectionRequired[section];
+    if (!required) return false;
+    return required.some((r) => !v(r.field).trim());
+  };
+
   const validateAndGo = (fromSection: number, toSection: number) => {
     const required = sectionRequired[fromSection];
     if (required) {
@@ -336,7 +342,7 @@ export function BriefingForm({
               onChange={(val) => set("vgv", val)}
               placeholder="R$ 80.000.000"
             />
-            <NavRow onBack={() => go(0)} onNext={() => validateAndGo(1, 2)} />
+            <NavRow onBack={() => go(0)} onNext={() => validateAndGo(1, 2)} disabled={isSectionIncomplete(1)} />
           </View>
 
           {/* ── View 2: Público-Alvo ── */}
@@ -386,7 +392,7 @@ export function BriefingForm({
               onChange={(val) => set("medo_objecao", val)}
               placeholder="Principal barreira de compra"
             />
-            <NavRow onBack={() => go(1)} onNext={() => validateAndGo(2, 3)} />
+            <NavRow onBack={() => go(1)} onNext={() => validateAndGo(2, 3)} disabled={isSectionIncomplete(2)} />
           </View>
 
           {/* ── View 3: O Produto ── */}
@@ -432,7 +438,7 @@ export function BriefingForm({
               onChange={(val) => set("posicionamento", val)}
               placeholder="Mais barato? Melhor localizado? Premium?"
             />
-            <NavRow onBack={() => go(2)} onNext={() => validateAndGo(3, 4)} />
+            <NavRow onBack={() => go(2)} onNext={() => validateAndGo(3, 4)} disabled={isSectionIncomplete(3)} />
           </View>
 
           {/* ── View 4: Direção Criativa ── */}
@@ -480,20 +486,14 @@ export function BriefingForm({
               placeholder="O que evitar na comunicação"
             />
             <div className="mt-6 flex gap-2.5">
-              <button className="nav-back" onClick={() => go(3)}>
+              <button type="button" className="nav-back" onClick={() => go(3)}>
                 &larr;
               </button>
               <button
+                type="button"
                 className="btn-primary flex-1"
-                onClick={() => {
-                  const missing = (sectionRequired[4] || []).filter((r) => !v(r.field).trim());
-                  if (missing.length > 0) {
-                    toast.error(`Preencha: ${missing.map((m) => m.label).join(", ")}`);
-                    return;
-                  }
-                  handleSubmit();
-                }}
-                disabled={submitting}
+                onClick={handleSubmit}
+                disabled={submitting || isSectionIncomplete(4)}
               >
                 {submitting ? "Enviando..." : "Enviar Briefing ✓"}
               </button>
@@ -747,17 +747,21 @@ function FieldRow({ children }: { children: React.ReactNode }) {
 function NavRow({
   onBack,
   onNext,
+  disabled,
 }: {
   onBack: () => void;
   onNext: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="mt-6 flex gap-2.5">
-      <button className="nav-back" onClick={onBack}>
+      <button type="button" className="nav-back" onClick={onBack}>
         &larr;
       </button>
       <button
-        className="flex-1 rounded-[10px] border-none bg-gradient-to-br from-[#E85102] to-[#EC7602] px-4 py-3 text-sm font-semibold text-white transition-all hover:brightness-110"
+        type="button"
+        disabled={disabled}
+        className="flex-1 rounded-[10px] border-none bg-gradient-to-br from-[#E85102] to-[#EC7602] px-4 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100"
         onClick={onNext}
       >
         Próximo &rarr;

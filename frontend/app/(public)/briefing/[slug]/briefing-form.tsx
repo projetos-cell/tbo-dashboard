@@ -76,30 +76,59 @@ export function BriefingForm({
     setValues((prev) => ({ ...prev, [name]: value }));
 
   const v = (name: string) => (values[name] as string) || "";
-  const checked = (name: string) => !!values[name];
-
   // ── Navigation ──
   const go = (n: number) => {
     setCurrent(n);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // ── Per-section required fields ──
+  const sectionRequired: Record<number, { field: string; label: string }[]> = {
+    1: [
+      { field: "nome_empreendimento", label: "Nome do Empreendimento" },
+      { field: "incorporadora", label: "Incorporadora" },
+      { field: "padrao", label: "Padrão" },
+      { field: "tipologias", label: "Tipologias" },
+      { field: "total_unidades", label: "Total de unidades" },
+    ],
+    2: [
+      { field: "persona_principal", label: "Persona principal" },
+      { field: "motivacao_compra", label: "Motivação de compra" },
+      { field: "mais_valoriza", label: "O que mais valoriza" },
+    ],
+    3: [
+      { field: "diferencial_principal", label: "Principal diferencial" },
+    ],
+    4: [
+      { field: "tom_voz", label: "Tom de voz" },
+    ],
+  };
+
+  const validateAndGo = (fromSection: number, toSection: number) => {
+    const required = sectionRequired[fromSection];
+    if (required) {
+      const missing = required.filter((r) => !v(r.field).trim());
+      if (missing.length > 0) {
+        toast.error(
+          `Preencha: ${missing.map((m) => m.label).join(", ")}`,
+        );
+        return;
+      }
+    }
+    go(toSection);
+  };
+
   const progress =
-    current === 0 ? 0 : current >= 7 ? 100 : Math.round((current / 6) * 100);
+    current === 0 ? 0 : current >= 5 ? 100 : Math.round((current / 4) * 100);
 
   // ── Submit ──
   const handleSubmit = async () => {
-    const required: { field: string; section: number }[] = [
-      { field: "nome_empreendimento", section: 1 },
-      { field: "incorporadora", section: 1 },
-      { field: "persona_principal", section: 2 },
-      { field: "diferencial_principal", section: 3 },
-    ];
-
-    for (const r of required) {
-      if (!v(r.field).trim()) {
-        go(r.section);
-        toast.error("Preencha os campos obrigatórios");
+    // Validate all sections before final submit
+    for (const [sec, fields] of Object.entries(sectionRequired)) {
+      const missing = fields.filter((r) => !v(r.field).trim());
+      if (missing.length > 0) {
+        go(Number(sec));
+        toast.error(`Preencha: ${missing.map((m) => m.label).join(", ")}`);
         return;
       }
     }
@@ -125,7 +154,7 @@ export function BriefingForm({
       }
 
       setSubmitted(true);
-      go(7);
+      go(5);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Erro ao enviar briefing",
@@ -212,9 +241,9 @@ export function BriefingForm({
               Começar briefing
             </button>
             <div className="mt-4 flex items-center justify-center gap-2.5 text-xs text-zinc-500">
-              <span>6 seções</span>
+              <span>4 seções</span>
               <span className="text-zinc-700">&middot;</span>
-              <span>~12 min</span>
+              <span>~8 min</span>
               <span className="text-zinc-700">&middot;</span>
               <span>Salva automaticamente</span>
             </div>
@@ -252,6 +281,7 @@ export function BriefingForm({
               />
               <SelectField
                 label="Padrão"
+                required
                 value={v("padrao")}
                 onChange={(val) => set("padrao", val)}
                 options={[
@@ -272,6 +302,7 @@ export function BriefingForm({
               />
               <Field
                 label="Total de unidades"
+                required
                 value={v("total_unidades")}
                 onChange={(val) => set("total_unidades", val)}
                 placeholder="Ex: 120"
@@ -279,6 +310,7 @@ export function BriefingForm({
             </FieldRow>
             <Field
               label="Tipologias"
+              required
               hint="Ex: 2Q, 3Q, cobertura"
               value={v("tipologias")}
               onChange={(val) => set("tipologias", val)}
@@ -304,7 +336,7 @@ export function BriefingForm({
               onChange={(val) => set("vgv", val)}
               placeholder="R$ 80.000.000"
             />
-            <NavRow onBack={() => go(0)} onNext={() => go(2)} />
+            <NavRow onBack={() => go(0)} onNext={() => validateAndGo(1, 2)} />
           </View>
 
           {/* ── View 2: Público-Alvo ── */}
@@ -333,6 +365,7 @@ export function BriefingForm({
             />
             <Field
               label="Motivação de compra"
+              required
               hint="Moradia própria, investimento, upgrade"
               value={v("motivacao_compra")}
               onChange={(val) => set("motivacao_compra", val)}
@@ -340,6 +373,7 @@ export function BriefingForm({
             />
             <Field
               label="O que mais valoriza"
+              required
               hint="Localização? Lazer? Acabamento? Preço?"
               value={v("mais_valoriza")}
               onChange={(val) => set("mais_valoriza", val)}
@@ -352,7 +386,7 @@ export function BriefingForm({
               onChange={(val) => set("medo_objecao", val)}
               placeholder="Principal barreira de compra"
             />
-            <NavRow onBack={() => go(1)} onNext={() => go(3)} />
+            <NavRow onBack={() => go(1)} onNext={() => validateAndGo(2, 3)} />
           </View>
 
           {/* ── View 3: O Produto ── */}
@@ -398,7 +432,7 @@ export function BriefingForm({
               onChange={(val) => set("posicionamento", val)}
               placeholder="Mais barato? Melhor localizado? Premium?"
             />
-            <NavRow onBack={() => go(2)} onNext={() => go(4)} />
+            <NavRow onBack={() => go(2)} onNext={() => validateAndGo(3, 4)} />
           </View>
 
           {/* ── View 4: Direção Criativa ── */}
@@ -413,6 +447,7 @@ export function BriefingForm({
             />
             <Field
               label="Tom de voz"
+              required
               hint="Sofisticado? Acolhedor? Moderno? Aspiracional?"
               value={v("tom_voz")}
               onChange={(val) => set("tom_voz", val)}
@@ -444,157 +479,20 @@ export function BriefingForm({
               onChange={(val) => set("nao_queremos", val)}
               placeholder="O que evitar na comunicação"
             />
-            <NavRow onBack={() => go(3)} onNext={() => go(5)} />
-          </View>
-
-          {/* ── View 5: Entregas ── */}
-          <View active={current === 5}>
-            <SectionHeader num={5} title="Entregas Esperadas" />
-            <div className="mt-1 divide-y divide-zinc-800/50">
-              <Toggle
-                label="Naming"
-                checked={checked("entrega_naming")}
-                onChange={(val) => set("entrega_naming", val)}
-              />
-              <Toggle
-                label="Identidade Visual (logo + manual + KVs)"
-                checked={checked("entrega_id_visual")}
-                onChange={(val) => set("entrega_id_visual", val)}
-              />
-              <Toggle
-                label="Tour virtual 360°"
-                checked={checked("entrega_tour_360")}
-                onChange={(val) => set("entrega_tour_360", val)}
-              />
-              <Toggle
-                label="Vídeo teaser"
-                checked={checked("entrega_video_teaser")}
-                onChange={(val) => set("entrega_video_teaser", val)}
-              />
-              <Toggle
-                label="Vídeo institucional"
-                checked={checked("entrega_video_institucional")}
-                onChange={(val) => set("entrega_video_institucional", val)}
-              />
-              <Toggle
-                label="Implantação"
-                checked={checked("entrega_implantacao")}
-                onChange={(val) => set("entrega_implantacao", val)}
-              />
-              <Toggle
-                label="Stand / PDV"
-                checked={checked("entrega_stand")}
-                onChange={(val) => set("entrega_stand", val)}
-              />
-              <Toggle
-                label="Site / Landing page"
-                checked={checked("entrega_site")}
-                onChange={(val) => set("entrega_site", val)}
-              />
-              <Toggle
-                label="Campanha digital"
-                checked={checked("entrega_campanha")}
-                onChange={(val) => set("entrega_campanha", val)}
-              />
-            </div>
-            <div className="mt-5 space-y-4">
-              <FieldRow>
-                <Field
-                  label="Imagens 3D (qtd)"
-                  value={v("qtd_3d")}
-                  onChange={(val) => set("qtd_3d", val)}
-                  placeholder="12 imagens"
-                />
-                <Field
-                  label="Plantas humanizadas (qtd)"
-                  value={v("qtd_plantas")}
-                  onChange={(val) => set("qtd_plantas", val)}
-                  placeholder="4 plantas"
-                />
-              </FieldRow>
-              <FieldRow>
-                <Field
-                  label="Book de vendas"
-                  value={v("book_vendas")}
-                  onChange={(val) => set("book_vendas", val)}
-                  placeholder="Digital + 200 impressos"
-                />
-                <Field
-                  label="Folder / panfleto"
-                  value={v("folder_qtd")}
-                  onChange={(val) => set("folder_qtd", val)}
-                  placeholder="5.000 unidades"
-                />
-              </FieldRow>
-              <Field
-                label="Tapume (metragem)"
-                value={v("tapume_metragem")}
-                onChange={(val) => set("tapume_metragem", val)}
-                placeholder="60m lineares"
-              />
-            </div>
-            <NavRow onBack={() => go(4)} onNext={() => go(6)} />
-          </View>
-
-          {/* ── View 6: Prazos ── */}
-          <View active={current === 6}>
-            <SectionHeader num={6} title="Prazos e Observações" />
-            <FieldRow>
-              <Field
-                label="Prazo naming"
-                type="date"
-                value={v("prazo_naming")}
-                onChange={(val) => set("prazo_naming", val)}
-              />
-              <Field
-                label="Prazo ID visual"
-                type="date"
-                value={v("prazo_id_visual")}
-                onChange={(val) => set("prazo_id_visual", val)}
-              />
-            </FieldRow>
-            <FieldRow>
-              <Field
-                label="Prazo 3Ds"
-                type="date"
-                value={v("prazo_3ds")}
-                onChange={(val) => set("prazo_3ds", val)}
-              />
-              <Field
-                label="Prazo materiais gráficos"
-                type="date"
-                value={v("prazo_graficos")}
-                onChange={(val) => set("prazo_graficos", val)}
-              />
-            </FieldRow>
-            <FieldRow>
-              <Field
-                label="Data do lançamento"
-                type="date"
-                value={v("data_lancamento")}
-                onChange={(val) => set("data_lancamento", val)}
-              />
-              <Field
-                label="Budget marketing (R$)"
-                value={v("budget_marketing")}
-                onChange={(val) => set("budget_marketing", val)}
-                placeholder="R$ 500.000"
-              />
-            </FieldRow>
-            <TextareaField
-              label="Observações adicionais"
-              value={v("observacoes")}
-              onChange={(val) => set("observacoes", val)}
-              placeholder="Qualquer informação relevante para a equipe criativa..."
-              rows={4}
-            />
             <div className="mt-6 flex gap-2.5">
-              <button className="nav-back" onClick={() => go(5)}>
+              <button className="nav-back" onClick={() => go(3)}>
                 &larr;
               </button>
               <button
                 className="btn-primary flex-1"
-                onClick={handleSubmit}
+                onClick={() => {
+                  const missing = (sectionRequired[4] || []).filter((r) => !v(r.field).trim());
+                  if (missing.length > 0) {
+                    toast.error(`Preencha: ${missing.map((m) => m.label).join(", ")}`);
+                    return;
+                  }
+                  handleSubmit();
+                }}
                 disabled={submitting}
               >
                 {submitting ? "Enviando..." : "Enviar Briefing ✓"}
@@ -602,8 +500,8 @@ export function BriefingForm({
             </div>
           </View>
 
-          {/* ── View 7: Success ── */}
-          <View active={current === 7}>
+          {/* ── View 5: Success ── */}
+          <View active={current === 5}>
             <div className="py-5 text-center">
               <div className="mb-5 inline-flex h-16 w-16 animate-[popIn_0.5s_ease] items-center justify-center rounded-full bg-[#E85102]/15 text-[28px]">
                 &#10003;
@@ -723,7 +621,7 @@ function SectionHeader({ num, title }: { num: number; title: string }) {
   return (
     <>
       <p className="mb-1 text-[11px] uppercase tracking-[1.5px] text-zinc-500">
-        Seção {num} de 6
+        Seção {num} de 4
       </p>
       <div className="mb-6 flex items-center gap-2.5">
         <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-[#E85102]/15 text-[13px] font-semibold text-[#E85102]">
@@ -807,11 +705,13 @@ function TextareaField({
 
 function SelectField({
   label,
+  required,
   value,
   onChange,
   options,
 }: {
   label: string;
+  required?: boolean;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
@@ -820,6 +720,7 @@ function SelectField({
     <div className="mb-4 last:mb-0">
       <label className="mb-1.5 block text-[13px] font-medium text-zinc-200">
         {label}
+        {required && <span className="text-[#E85102]"> *</span>}
       </label>
       <select
         className="w-full cursor-pointer appearance-none rounded-[10px] border border-zinc-700 bg-zinc-800/50 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[right_12px_center] bg-no-repeat px-3.5 py-2.5 pr-8 text-sm text-white outline-none transition-all focus:border-[#E85102] focus:ring-[3px] focus:ring-[#E85102]/15"
@@ -836,31 +737,6 @@ function SelectField({
   );
 }
 
-function Toggle({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between py-2.5">
-      <span className="text-sm text-zinc-300">{label}</span>
-      <label className="relative h-[22px] w-10 flex-shrink-0 cursor-pointer">
-        <input
-          type="checkbox"
-          className="peer sr-only"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-        />
-        <span className="absolute inset-0 rounded-full bg-zinc-700 transition-colors peer-checked:bg-[#E85102]" />
-        <span className="absolute left-0.5 top-0.5 h-[18px] w-[18px] rounded-full bg-zinc-400 transition-all peer-checked:translate-x-[18px] peer-checked:bg-white" />
-      </label>
-    </div>
-  );
-}
 
 function FieldRow({ children }: { children: React.ReactNode }) {
   return (

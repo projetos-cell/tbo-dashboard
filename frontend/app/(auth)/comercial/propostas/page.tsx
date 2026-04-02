@@ -45,13 +45,17 @@ function formatBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-const STATUS_CONFIG: Record<ProposalStatus, { label: string; color: string; bg: string }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   draft: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
   sent: { label: "Enviada", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
   approved: { label: "Aprovada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  aprovada: { label: "Aprovada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
   rejected: { label: "Recusada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  recusada: { label: "Recusada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
   expired: { label: "Expirada", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
 };
+
+const FALLBACK_STATUS = { label: "Desconhecido", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" };
 
 const ALL_STATUSES: ProposalStatus[] = ["draft", "sent", "approved", "rejected", "expired"];
 
@@ -71,7 +75,7 @@ function ProposalRow_({ proposal, onEdit, onDelete, onStatusChange }: {
   onDelete: () => void;
   onStatusChange: (status: ProposalStatus) => void;
 }) {
-  const status = STATUS_CONFIG[proposal.status];
+  const status = STATUS_CONFIG[proposal.status] ?? FALLBACK_STATUS;
   const expiresAt = proposal.created_at
     ? new Date(new Date(proposal.created_at).getTime() + proposal.valid_days * 86400000)
     : null;

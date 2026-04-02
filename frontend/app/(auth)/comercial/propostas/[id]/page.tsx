@@ -78,6 +78,9 @@ const STATUS_CONFIG: Record<ProposalStatus, { label: string; color: string; bg: 
   approved: { label: "Aprovada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
   rejected: { label: "Recusada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
   expired: { label: "Expirada", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+  enviada: { label: "Enviada", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  aprovada: { label: "Aprovada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  recusada: { label: "Recusada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────

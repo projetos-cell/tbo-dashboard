@@ -3,7 +3,7 @@ import type { Database } from "@/lib/supabase/types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type ProposalStatus = "draft" | "sent" | "approved" | "rejected" | "expired";
+export type ProposalStatus = "draft" | "sent" | "approved" | "rejected" | "expired" | "enviada" | "aprovada" | "recusada";
 
 export interface ProposalRow {
   id: string;

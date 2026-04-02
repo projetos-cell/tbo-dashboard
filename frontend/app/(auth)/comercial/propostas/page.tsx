@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useProposals, useProposal, useDeleteProposal, useUpdateProposal } from "@/features/comercial/hooks/use-proposals";
+import type { ProposalStatus } from "@/features/comercial/services/proposals";
 import { ProposalEditorDialog } from "@/features/comercial/components/proposal-editor-dialog";
 import { EmptyState, ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
@@ -98,7 +99,7 @@ function ProposalRow_({ proposal, onEdit, onDelete, onStatusChange }: {
   proposal: ProposalRow;
   onEdit: () => void;
   onDelete: () => void;
-  onStatusChange: (status: string) => void;
+  onStatusChange: (status: ProposalStatus) => void;
 }) {
   const status = STATUS_CONFIG[proposal.status] ?? FALLBACK_STATUS;
   const expiresAt = proposal.created_at
@@ -245,7 +246,7 @@ export default function ComercialPropostas() {
     if (!open) setEditingId(null);
   }
 
-  function handleStatusChange(id: string, status: string) {
+  function handleStatusChange(id: string, status: ProposalStatus) {
     updateMutation.mutate({ id, updates: { status } });
   }
 

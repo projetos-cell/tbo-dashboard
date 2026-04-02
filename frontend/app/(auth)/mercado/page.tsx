@@ -37,12 +37,12 @@ export default function MercadoPage() {
     <div className="space-y-6 p-6">
       {/* Header */}
       <ReportHeader
-        title="Inteligência de Mercado"
-        subtitle="Dados demográficos, lançamentos imobiliários e indicadores do Paraná"
+        title="Inteligência Estratégica"
+        subtitle="Radar competitivo da TBO — empreendimentos, incorporadoras, preços, estoque e indicadores macro em 5 estados"
         sources={[
+          { label: "Órulo API + CSV", date: "Tempo real" },
           { label: "IBGE Censo", date: "Dez 2022" },
-          { label: "CBIC", date: "T4 2025" },
-          { label: "FipeZap", date: "Fev 2026" },
+          { label: "FipeZap + CBIC", date: "2026" },
         ]}
       />
 
@@ -90,70 +90,69 @@ export default function MercadoPage() {
         </Card>
       </div>
 
-      {/* Navigation Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Navigation Cards — ordenados por valor estratégico */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <ModuleCard
           href="/mercado/catalogo"
           icon={IconMapPin}
           title="Catálogo Regional"
-          description="Base completa de empreendimentos por região — SP, RJ, PR, Curitiba, SC. Dados importados do Órulo com contatos e comissões."
+          description="Base proprietária de 1.600+ empreendimentos com contatos comerciais, comissões e documentos — SP, RJ, PR, Curitiba, SC."
           highlights={[
-            "~1.900 empreendimentos",
-            "5 regiões (SP, RJ, PR, CWB, SC)",
-            "Contatos + comissões + docs",
+            "1.600+ empreendimentos mapeados",
+            "5 regiões estratégicas",
+            "Contatos diretos + comissões PJ/PF",
           ]}
-          badge="CSV"
-          badgeVariant="secondary"
+          badge="ESTRATÉGICO"
         />
         <ModuleCard
           href="/mercado/orulo"
           icon={IconBuilding}
-          title="Catálogo Órulo (API)"
-          description="Empreendimentos em tempo real — filtros por UF, cidade, preço, tipologia. Sincronização automática."
+          title="Radar Órulo (API Live)"
+          description="Feed em tempo real do mercado nacional — preços, estoque, tipologias. Sincroniza automaticamente com o Supabase."
           highlights={[
-            "API v2 em tempo real",
-            "Filtros avançados",
-            "Sync Supabase",
+            "Dados em tempo real via API v2",
+            "Filtros por UF, cidade, tipologia",
+            "Sync automático Supabase",
           ]}
           badge="LIVE"
         />
         <ModuleCard
+          href="/mercado/lancamentos"
+          icon={IconTarget}
+          title="Lançamentos PR"
+          description="Tracker do mercado primário do Paraná — velocidade de vendas, preço/m² por bairro, posicionamento de incorporadoras."
+          highlights={[
+            `${LANCAMENTOS.length} empreendimentos monitorados`,
+            `Preço/m² médio: R$ ${fmtNum(MERCADO_CURITIBA.precoM2Medio)}`,
+            `VSO médio: ${vsoMedio.toFixed(1)}%`,
+          ]}
+          badge="COMPETITIVO"
+          badgeVariant="secondary"
+        />
+        <ModuleCard
+          href="/mercado/indicadores"
+          icon={IconChartBar}
+          title="Indicadores Macro"
+          description="Termômetro do crédito e construção — Selic, FipeZap, CUB, INCC, volume de financiamento e ranking de cidades."
+          highlights={[
+            `Selic: ${CREDITO_IMOBILIARIO.taxaSelic}% a.a.`,
+            `Vol. financiado: R$ ${CREDITO_IMOBILIARIO.volumeFinanciado2025} bi`,
+            `Ticket médio CWB: R$ ${fmtNum(MERCADO_CURITIBA.ticketMedio)}`,
+          ]}
+          badge="MACRO"
+          badgeVariant="outline"
+        />
+        <ModuleCard
           href="/mercado/censo"
-          icon={IconMapPin}
-          title="Censo IBGE 2022"
-          description="Dados demográficos e habitacionais do Paraná — população, urbanização, déficit habitacional, mesorregiões"
+          icon={IconUsers}
+          title="Demografia PR"
+          description="Base demográfica e habitacional do Paraná via IBGE — população, urbanização, déficit, mesorregiões."
           highlights={[
             `${fmtNum(CENSO_PR_RESUMO.populacao)} habitantes`,
             `${CENSO_PR_RESUMO.urbanizacao}% urbanização`,
             `${CENSO_PR_RESUMO.totalMunicipios} municípios`,
           ]}
           badge="IBGE"
-          badgeVariant="secondary"
-        />
-        <ModuleCard
-          href="/mercado/lancamentos"
-          icon={IconTarget}
-          title="Lançamentos PR"
-          description="Tracker de empreendimentos do mercado primário — incorporadoras, tipologias, preço/m², velocidade de vendas"
-          highlights={[
-            `${LANCAMENTOS.length} empreendimentos`,
-            `Preço/m² médio: R$ ${fmtNum(MERCADO_CURITIBA.precoM2Medio)}`,
-            `Batel: R$ ${fmtNum(MERCADO_CURITIBA.precoM2Batel)}/m²`,
-          ]}
-          badge="Órulo"
-          badgeVariant="outline"
-        />
-        <ModuleCard
-          href="/mercado/indicadores"
-          icon={IconChartBar}
-          title="Indicadores"
-          description="FipeZap, CUB, INCC, crédito imobiliário, ranking de cidades e dados macro do mercado"
-          highlights={[
-            `Ticket médio: R$ ${fmtNum(MERCADO_CURITIBA.ticketMedio)}`,
-            `Estoque: ${fmtNum(MERCADO_CURITIBA.estoqueUnidades)} un.`,
-            `Vol. financiado: R$ ${CREDITO_IMOBILIARIO.volumeFinanciado2025} bi`,
-          ]}
-          badge="CBIC"
           badgeVariant="outline"
         />
       </div>
@@ -200,10 +199,7 @@ export default function MercadoPage() {
       </Card>
 
       <p className="text-center text-xs text-muted-foreground">
-        Fontes: IBGE Censo 2022 · IPARDES · FipeZap · CBIC · SINDUSCON-PR ·
-        <Link href="/mercado/orulo" className="underline hover:text-foreground ml-1">
-          Órulo API (tempo real)
-        </Link>
+        Fontes: Órulo API + CSVs · IBGE Censo 2022 · FipeZap · CBIC · SINDUSCON-PR · IPARDES
       </p>
     </div>
   );

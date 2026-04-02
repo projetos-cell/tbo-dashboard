@@ -355,7 +355,7 @@ export const NAV_ITEMS = [
   { href: "/clientes", label: "Clientes", icon: "building-2", module: "clientes" },
   { href: "/contratos", label: "Contratos", icon: "file-text", module: "contratos" },
   { href: "/comercial", label: "Comercial", icon: "briefcase", module: "comercial" },
-  { href: "/mercado", label: "Mercado", icon: "map-pin", module: "mercado" },
+  { href: "/mercado", label: "Inteligência Estratégica", icon: "radar", module: "mercado" },
   { href: "/cultura/okrs", label: "OKRs", icon: "target", module: "okrs" },
   { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
   { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura" },

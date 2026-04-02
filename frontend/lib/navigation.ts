@@ -72,6 +72,17 @@ export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
       { href: "/rewards/recompensas", label: "Recompensas", icon: "gift", module: "cultura" },
     ],
   },
+  // ── Inteligência Estratégica (radar competitivo, mercado, dados) ──
+  {
+    label: "Inteligência Estratégica",
+    items: [
+      { href: "/mercado", label: "Radar de Mercado", icon: "radar", module: "mercado" },
+      { href: "/mercado/catalogo", label: "Catálogo Regional", icon: "map-pin", module: "mercado" },
+      { href: "/mercado/orulo", label: "Órulo (API Live)", icon: "building-2", module: "mercado" },
+      { href: "/mercado/indicadores", label: "Indicadores", icon: "trending-up", module: "mercado" },
+      { href: "/inteligencia", label: "AI Insights", icon: "lightbulb", module: "inteligencia" },
+    ],
+  },
   // ── Estratégia (marketing & relatórios) ─────────────────────────
   {
     label: "Estratégia",

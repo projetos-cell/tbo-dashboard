@@ -39,25 +39,50 @@ import {
   IconEye,
 } from "@tabler/icons-react";
 import Link from "next/link";
-import type { ProposalRow, ProposalStatus } from "@/features/comercial/services/proposals";
+import type { ProposalRow } from "@/features/comercial/services/proposals";
 
 function formatBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  // EN keys (code/type)
   draft: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
   sent: { label: "Enviada", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
   approved: { label: "Aprovada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-  aprovada: { label: "Aprovada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
   rejected: { label: "Recusada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
-  recusada: { label: "Recusada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
   expired: { label: "Expirada", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+  // PT keys (actual DB values)
+  rascunho: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  enviada: { label: "Enviada", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  aprovada: { label: "Aprovada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  recusada: { label: "Recusada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  expirada: { label: "Expirada", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
 };
 
 const FALLBACK_STATUS = { label: "Desconhecido", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" };
 
-const ALL_STATUSES: ProposalStatus[] = ["draft", "sent", "approved", "rejected", "expired"];
+/** All status tab values — includes both EN and PT variants */
+const ALL_STATUS_TABS = [
+  { value: "draft", label: "Rascunho", match: ["draft", "rascunho"] },
+  { value: "sent", label: "Enviada", match: ["sent", "enviada"] },
+  { value: "approved", label: "Aprovada", match: ["approved", "aprovada"] },
+  { value: "rejected", label: "Recusada", match: ["rejected", "recusada"] },
+  { value: "expired", label: "Expirada", match: ["expired", "expirada"] },
+];
+
+function matchesStatusTab(proposalStatus: string, tab: string): boolean {
+  const entry = ALL_STATUS_TABS.find((t) => t.value === tab);
+  return entry ? entry.match.includes(proposalStatus) : proposalStatus === tab;
+}
+
+function isOpenStatus(status: string): boolean {
+  return ["draft", "rascunho", "sent", "enviada"].includes(status);
+}
+
+function isApprovedStatus(status: string): boolean {
+  return ["approved", "aprovada"].includes(status);
+}
 
 function KPICard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -73,7 +98,7 @@ function ProposalRow_({ proposal, onEdit, onDelete, onStatusChange }: {
   proposal: ProposalRow;
   onEdit: () => void;
   onDelete: () => void;
-  onStatusChange: (status: ProposalStatus) => void;
+  onStatusChange: (status: string) => void;
 }) {
   const status = STATUS_CONFIG[proposal.status] ?? FALLBACK_STATUS;
   const expiresAt = proposal.created_at
@@ -136,21 +161,21 @@ function ProposalRow_({ proposal, onEdit, onDelete, onStatusChange }: {
               <IconEdit className="h-3.5 w-3.5 mr-2" /> Editar
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {proposal.status === "draft" && (
-              <DropdownMenuItem onClick={() => onStatusChange("sent")}>
+            {["draft", "rascunho"].includes(proposal.status) && (
+              <DropdownMenuItem onClick={() => onStatusChange("enviada")}>
                 <IconSend className="h-3.5 w-3.5 mr-2" /> Marcar como Enviada
               </DropdownMenuItem>
             )}
-            {proposal.status === "sent" && (
+            {["sent", "enviada"].includes(proposal.status) && (
               <>
                 <DropdownMenuItem
-                  onClick={() => onStatusChange("approved")}
+                  onClick={() => onStatusChange("aprovada")}
                   className="text-emerald-600"
                 >
                   <IconCheck className="h-3.5 w-3.5 mr-2" /> Aprovada
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => onStatusChange("rejected")}
+                  onClick={() => onStatusChange("recusada")}
                   className="text-red-500"
                 >
                   <IconX className="h-3.5 w-3.5 mr-2" /> Recusada
@@ -169,7 +194,7 @@ function ProposalRow_({ proposal, onEdit, onDelete, onStatusChange }: {
 }
 
 export default function ComercialPropostas() {
-  const [statusTab, setStatusTab] = useState<ProposalStatus | "all">("all");
+  const [statusTab, setStatusTab] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -182,7 +207,7 @@ export default function ComercialPropostas() {
 
   const filtered = useMemo(() => {
     let list = allProposals;
-    if (statusTab !== "all") list = list.filter((p) => p.status === statusTab);
+    if (statusTab !== "all") list = list.filter((p) => matchesStatusTab(p.status, statusTab));
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -198,9 +223,9 @@ export default function ComercialPropostas() {
 
   const kpis = useMemo(() => {
     const total = allProposals.length;
-    const open = allProposals.filter((p) => ["draft", "sent"].includes(p.status));
+    const open = allProposals.filter((p) => isOpenStatus(p.status));
     const openValue = open.reduce((s, p) => s + (p.value ?? 0), 0);
-    const approved = allProposals.filter((p) => p.status === "approved");
+    const approved = allProposals.filter((p) => isApprovedStatus(p.status));
     const approvedValue = approved.reduce((s, p) => s + (p.value ?? 0), 0);
     return { total, openValue, approvedValue };
   }, [allProposals]);
@@ -220,7 +245,7 @@ export default function ComercialPropostas() {
     if (!open) setEditingId(null);
   }
 
-  function handleStatusChange(id: string, status: ProposalStatus) {
+  function handleStatusChange(id: string, status: string) {
     updateMutation.mutate({ id, updates: { status } });
   }
 
@@ -255,12 +280,12 @@ export default function ComercialPropostas() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as ProposalStatus | "all")}>
+        <Tabs value={statusTab} onValueChange={setStatusTab}>
           <TabsList>
             <TabsTrigger value="all">Todas</TabsTrigger>
-            {ALL_STATUSES.map((s) => (
-              <TabsTrigger key={s} value={s}>
-                {STATUS_CONFIG[s].label}
+            {ALL_STATUS_TABS.map((t) => (
+              <TabsTrigger key={t.value} value={t.value}>
+                {t.label}
               </TabsTrigger>
             ))}
           </TabsList>

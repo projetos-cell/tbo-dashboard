@@ -10,7 +10,6 @@ import {
   IconEdit,
   IconLink,
   IconSend,
-  IconFileTypePdf,
   IconCopy,
   IconExternalLink,
   IconFileText,
@@ -44,7 +43,17 @@ import { ProposalD3DFlow } from "@/app/(public)/proposta/[token]/components/prop
 import { ProposalWhyTBO } from "@/app/(public)/proposta/[token]/components/proposal-why-tbo";
 import { ProposalTimeline } from "@/app/(public)/proposta/[token]/components/proposal-timeline";
 import { ProposalPaymentOptions } from "@/app/(public)/proposta/[token]/components/proposal-payment-options";
-import type { PaymentConditionOption, ProposalStatus } from "@/features/comercial/services/proposals";
+import type { PaymentConditionOption, ProposalStatus, ProposalWithItems } from "@/features/comercial/services/proposals";
+
+/** Extended proposal with client-link fields that exist in DB but not in base type */
+type ProposalExt = ProposalWithItems & {
+  client_token?: string | null;
+  client_viewed_at?: string | null;
+  client_decided_at?: string | null;
+  client_feedback?: string | null;
+  sent_at?: string | null;
+  access_password?: string | null;
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -79,7 +88,8 @@ export default function ProposalDetailPage() {
   const proposalId = params.id as string;
   const queryClient = useQueryClient();
 
-  const { data: proposal, isLoading, error } = useProposal(proposalId);
+  const { data: rawProposal, isLoading, error } = useProposal(proposalId);
+  const proposal = rawProposal as ProposalExt | undefined;
   const updateMutation = useUpdateProposal();
   const [editorOpen, setEditorOpen] = useState(false);
   const [generatingLink, setGeneratingLink] = useState(false);

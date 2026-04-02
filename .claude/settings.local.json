@@ -105,7 +105,14 @@
       "Bash(ls \"app/\\(auth\\)/cultura/blog/\")",
       "Bash(ls \"app/\\(auth\\)/servicos/\")",
       "Bash(ls \"app/\\(hub\\)/servicos/\")",
-      "Bash(node -e \"const icons = require\\(''@tabler/icons-react''\\); console.log\\(''IconUrgent:'', !!icons.IconUrgent\\); console.log\\(''IconAlertOctagon:'', !!icons.IconAlertOctagon\\); console.log\\(''IconExclamationCircle:'', !!icons.IconExclamationCircle\\); console.log\\(''IconBellExclamation:'', !!icons.IconBellExclamation\\);\")"
+      "Bash(node -e \"const icons = require\\(''@tabler/icons-react''\\); console.log\\(''IconUrgent:'', !!icons.IconUrgent\\); console.log\\(''IconAlertOctagon:'', !!icons.IconAlertOctagon\\); console.log\\(''IconExclamationCircle:'', !!icons.IconExclamationCircle\\); console.log\\(''IconBellExclamation:'', !!icons.IconBellExclamation\\);\")",
+      "mcp__4dff071f-e24b-460d-9c91-1450b1b8ac41__get_project_url",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(node node_modules/.bin/next build)",
+      "Bash(node -e \"console.log\\(process.version\\)\")",
+      "Bash(npx sharp-cli:*)"
     ]
   }
 }

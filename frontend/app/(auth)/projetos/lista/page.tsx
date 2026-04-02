@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { IconPlus, IconList, IconSearch, IconFilterOff, IconFolderPlus } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +17,20 @@ import { parseBus } from "@/features/projects/utils/parse-bus";
 import { RequireRole } from "@/features/auth/components/require-role";
 
 export default function ProjetosListaPage() {
+  const searchParams = useSearchParams();
+  const buFromUrl = searchParams.get("bu");
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [buFilter, setBuFilter] = useState("all");
+  const [buFilter, setBuFilter] = useState(buFromUrl ?? "all");
   const [formOpen, setFormOpen] = useState(false);
+
+  // Sync BU filter when URL param changes (e.g. navigating from hub)
+  useEffect(() => {
+    if (buFromUrl && buFromUrl !== buFilter) {
+      setBuFilter(buFromUrl);
+    }
+  }, [buFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useUser();
 

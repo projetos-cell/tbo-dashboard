@@ -340,6 +340,163 @@ export function useOruloSyncedBuildings(
   });
 }
 
+// ---------------------------------------------------------------------------
+// CSV Import mutation
+// ---------------------------------------------------------------------------
+
+export interface CSVImportResult {
+  status: string;
+  total_rows: number;
+  imported: number;
+  updated: number;
+  errors: number;
+  region: string;
+}
+
+export function useOruloCSVImport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      csvData,
+      region,
+      tenantId,
+    }: {
+      csvData: string;
+      region: string;
+      tenantId: string;
+    }): Promise<CSVImportResult> => {
+      const res = await fetch("/api/mercado/import-orulo-csv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          csv_data: csvData,
+          region,
+          tenant_id: tenantId,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(body.error ?? `Import falhou: ${res.status}`);
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orulo-synced"] });
+      queryClient.invalidateQueries({ queryKey: ["orulo-csv"] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Hook para dados CSV importados (Supabase) — com filtros regionais
+// ---------------------------------------------------------------------------
+
+export function useOruloCSVBuildings(
+  supabase: SupabaseClient | null,
+  tenantId: string | undefined,
+  filters?: {
+    region?: string;
+    state?: string;
+    city?: string;
+    status?: string;
+    search?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    limit?: number;
+    offset?: number;
+  },
+) {
+  return useQuery({
+    queryKey: ["orulo-csv", "buildings", tenantId, filters],
+    queryFn: async () => {
+      if (!supabase || !tenantId) throw new Error("No client/tenant");
+
+      let query = supabase
+        .from("orulo_buildings")
+        .select("*", { count: "exact" })
+        .eq("tenant_id", tenantId)
+        .eq("data_source", "csv_import")
+        .order("min_price", { ascending: false, nullsFirst: false });
+
+      if (filters?.region) query = query.eq("import_region", filters.region);
+      if (filters?.state) query = query.eq("state", filters.state);
+      if (filters?.city) query = query.eq("city", filters.city);
+      if (filters?.status) query = query.eq("status", filters.status);
+      if (filters?.search) {
+        query = query.or(
+          `name.ilike.%${filters.search}%,area.ilike.%${filters.search}%,developer_name.ilike.%${filters.search}%,city.ilike.%${filters.search}%`,
+        );
+      }
+      if (filters?.minPrice) query = query.gte("min_price", filters.minPrice);
+      if (filters?.maxPrice) query = query.lte("min_price", filters.maxPrice);
+
+      const limit = filters?.limit ?? 50;
+      const offset = filters?.offset ?? 0;
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return { buildings: data ?? [], total: count ?? 0 };
+    },
+    enabled: !!supabase && !!tenantId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Stats por região (para KPIs)
+// ---------------------------------------------------------------------------
+
+export function useOruloCSVStats(
+  supabase: SupabaseClient | null,
+  tenantId: string | undefined,
+) {
+  return useQuery({
+    queryKey: ["orulo-csv", "stats", tenantId],
+    queryFn: async () => {
+      if (!supabase || !tenantId) throw new Error("No client/tenant");
+
+      const { data, error } = await supabase
+        .from("orulo_buildings")
+        .select("import_region, state, city, min_price, stock, status")
+        .eq("tenant_id", tenantId)
+        .eq("data_source", "csv_import");
+
+      if (error) throw error;
+
+      const byRegion: Record<string, { count: number; avgPrice: number; totalStock: number }> = {};
+
+      for (const row of data ?? []) {
+        const region = row.import_region || "other";
+        if (!byRegion[region]) {
+          byRegion[region] = { count: 0, avgPrice: 0, totalStock: 0 };
+        }
+        byRegion[region].count++;
+        byRegion[region].avgPrice += row.min_price ?? 0;
+        byRegion[region].totalStock += row.stock ?? 0;
+      }
+
+      for (const key of Object.keys(byRegion)) {
+        if (byRegion[key].count > 0) {
+          byRegion[key].avgPrice /= byRegion[key].count;
+        }
+      }
+
+      return {
+        total: (data ?? []).length,
+        byRegion,
+      };
+    },
+    enabled: !!supabase && !!tenantId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
+}
+
 export function useOruloSyncLog(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tables not in generated types (orulo_buildings, orulo_units)
   supabase: SupabaseClient | null,

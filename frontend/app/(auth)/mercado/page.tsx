@@ -93,9 +93,22 @@ export default function MercadoPage() {
       {/* Navigation Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <ModuleCard
+          href="/mercado/catalogo"
+          icon={IconMapPin}
+          title="Catálogo Regional"
+          description="Base completa de empreendimentos por região — SP, RJ, PR, Curitiba, SC. Dados importados do Órulo com contatos e comissões."
+          highlights={[
+            "~1.900 empreendimentos",
+            "5 regiões (SP, RJ, PR, CWB, SC)",
+            "Contatos + comissões + docs",
+          ]}
+          badge="CSV"
+          badgeVariant="secondary"
+        />
+        <ModuleCard
           href="/mercado/orulo"
           icon={IconBuilding}
-          title="Catálogo Órulo"
+          title="Catálogo Órulo (API)"
           description="Empreendimentos em tempo real — filtros por UF, cidade, preço, tipologia. Sincronização automática."
           highlights={[
             "API v2 em tempo real",

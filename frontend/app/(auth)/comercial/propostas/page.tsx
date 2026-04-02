@@ -36,7 +36,9 @@ import {
   IconCheck,
   IconX,
   IconSend,
+  IconEye,
 } from "@tabler/icons-react";
+import Link from "next/link";
 import type { ProposalRow, ProposalStatus } from "@/features/comercial/services/proposals";
 
 function formatBRL(n: number) {
@@ -78,7 +80,9 @@ function ProposalRow_({ proposal, onEdit, onDelete, onStatusChange }: {
   return (
     <tr className="hover:bg-muted/30 transition-colors">
       <td className="px-4 py-3">
-        <div className="font-medium">{proposal.name}</div>
+        <Link href={`/comercial/propostas/${proposal.id}`} className="hover:underline">
+          <div className="font-medium">{proposal.name}</div>
+        </Link>
         {proposal.ref_code && (
           <div className="text-xs text-muted-foreground font-mono">{proposal.ref_code}</div>
         )}
@@ -119,6 +123,11 @@ function ProposalRow_({ proposal, onEdit, onDelete, onStatusChange }: {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem asChild>
+              <Link href={`/comercial/propostas/${proposal.id}`}>
+                <IconEye className="h-3.5 w-3.5 mr-2" /> Visualizar
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onEdit}>
               <IconEdit className="h-3.5 w-3.5 mr-2" /> Editar
             </DropdownMenuItem>

@@ -291,6 +291,35 @@ export type DealStageKey = keyof typeof DEAL_STAGES;
 
 export const DEAL_SOURCES = ["site", "indicacao", "linkedin", "evento", "outbound", "outro"] as const;
 
+// ─── Deal follow-up cadence (max days without activity per stage) ───
+export const STAGE_CADENCE: Record<DealStageKey, number> = {
+  lead: 5,
+  qualificacao: 3,
+  proposta: 5,
+  negociacao: 2,
+  fechado_ganho: 999,
+  fechado_perdido: 999,
+};
+
+// ─── Loss reasons ───────────────────────────────────────────────────
+export const LOSS_REASONS = [
+  { value: "preco", label: "Preço acima do esperado" },
+  { value: "timing", label: "Timing inadequado" },
+  { value: "concorrencia", label: "Concorrência" },
+  { value: "escopo", label: "Escopo não atendido" },
+  { value: "budget", label: "Budget insuficiente" },
+  { value: "sem_resposta", label: "Sem resposta do cliente" },
+  { value: "outro", label: "Outro" },
+] as const;
+
+export type LossReasonValue = (typeof LOSS_REASONS)[number]["value"];
+
+// ─── Lead scoring thresholds ────────────────────────────────────────
+export const SCORE_THRESHOLDS = {
+  hot: 70,
+  warm: 40,
+} as const;
+
 // ─── OKR status / levels ─────────────────────────────────────────────
 export const OKR_STATUS = {
   on_track: { label: "No caminho", color: "#16a34a", bg: "rgba(34,197,94,0.1)" },

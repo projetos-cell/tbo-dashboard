@@ -556,3 +556,67 @@ export function computePipelineByOwner(deals: DealRow[]): PipelineByOwner[] {
     }))
     .sort((a, b) => b.billed - a.billed);
 }
+
+// ── Loss Reason Analytics ──────────────────────────────────────────────────
+
+export interface LossReasonData {
+  reason: string;
+  count: number;
+  value: number;
+  pct: number;
+  color: string;
+}
+
+const LOSS_COLORS: Record<string, string> = {
+  preco: "#ef4444",
+  timing: "#f59e0b",
+  concorrencia: "#8b5cf6",
+  escopo: "#3b82f6",
+  budget: "#ec4899",
+  sem_resposta: "#6b7280",
+  outro: "#94a3b8",
+};
+
+const LOSS_LABELS: Record<string, string> = {
+  preco: "Preço",
+  timing: "Timing",
+  concorrencia: "Concorrência",
+  escopo: "Escopo",
+  budget: "Budget",
+  sem_resposta: "Sem resposta",
+  outro: "Outro",
+};
+
+export function computeLossReasons(deals: DealRow[]): LossReasonData[] {
+  const lost = deals.filter((d) => d.stage === "fechado_perdido");
+  const reasons = new Map<string, { count: number; value: number }>();
+
+  for (const d of lost) {
+    const reason = (d as unknown as Record<string, unknown>).loss_reason as string || "outro";
+    const existing = reasons.get(reason) ?? { count: 0, value: 0 };
+    existing.count++;
+    existing.value += d.value ?? 0;
+    reasons.set(reason, existing);
+  }
+
+  const total = lost.length || 1;
+
+  return Array.from(reasons.entries())
+    .map(([reason, v]) => ({
+      reason: LOSS_LABELS[reason] ?? reason,
+      count: v.count,
+      value: v.value,
+      pct: (v.count / total) * 100,
+      color: LOSS_COLORS[reason] ?? "#94a3b8",
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+export function getLossInsight(lossData: LossReasonData[]): string | null {
+  if (lossData.length === 0) return null;
+  const top = lossData[0];
+  if (top.pct >= 40) {
+    return `${top.pct.toFixed(0)}% das perdas são por "${top.reason}". Ação recomendada: revisar estratégia nessa área.`;
+  }
+  return null;
+}

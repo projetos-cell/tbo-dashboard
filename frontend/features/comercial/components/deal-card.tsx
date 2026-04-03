@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { IconUser, IconCalendar } from "@tabler/icons-react";
+import { IconUser, IconCalendar, IconFlame, IconSun, IconSnowflake, IconAlertTriangle } from "@tabler/icons-react";
 import { formatCurrency } from "@/features/comercial/lib/format-currency";
-import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
+import { DEAL_STAGES, STAGE_CADENCE, type DealStageKey } from "@/lib/constants";
+import { classifyTemperature, computeLeadScore, TEMPERATURE_CONFIG, type DealTemperature } from "@/features/comercial/lib/lead-scoring";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,10 +16,18 @@ import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
 
+const TEMP_ICONS: Record<DealTemperature, React.ElementType> = {
+  hot: IconFlame,
+  warm: IconSun,
+  cold: IconSnowflake,
+};
+
 interface DealCardProps {
   deal: DealRow;
   onClick: (deal: DealRow) => void;
   showAgingIndicator?: boolean;
+  showScoring?: boolean;
+  maxPipelineValue?: number;
   selectable?: boolean;
   selected?: boolean;
   onSelect?: (dealId: string, selected: boolean) => void;
@@ -42,6 +51,8 @@ export function DealCard({
   deal,
   onClick,
   showAgingIndicator = true,
+  showScoring = true,
+  maxPipelineValue = 1,
   selectable,
   selected,
   onSelect,
@@ -51,6 +62,17 @@ export function DealCard({
   const stageColor = stageConfig?.color ?? "#6b7280";
   const stageLabel = stageConfig?.label ?? deal.stage;
   const days = getDaysInStage(deal);
+
+  // Lead scoring
+  const isActive = deal.stage !== "fechado_ganho" && deal.stage !== "fechado_perdido";
+  const score = isActive ? computeLeadScore(deal, maxPipelineValue) : 0;
+  const temperature = isActive ? classifyTemperature(score) : null;
+  const tempConfig = temperature ? TEMPERATURE_CONFIG[temperature] : null;
+  const TempIcon = temperature ? TEMP_ICONS[temperature] : null;
+
+  // Follow-up alert
+  const cadence = STAGE_CADENCE[deal.stage as DealStageKey] ?? 7;
+  const isStale = isActive && days > cadence;
 
   // ── Inline value edit ─────────────────────────────────────────────
   const [editingValue, setEditingValue] = useState(false);
@@ -112,7 +134,20 @@ export function DealCard({
             />
           )}
           <p className="font-medium text-sm leading-tight truncate flex-1">{deal.name}</p>
-          {showAgingIndicator && deal.stage !== "fechado_ganho" && deal.stage !== "fechado_perdido" && (
+          {isStale && (
+            <IconAlertTriangle
+              className="h-3.5 w-3.5 shrink-0 text-amber-500"
+              title={`Sem atividade ha ${days}d (cadencia: ${cadence}d)`}
+            />
+          )}
+          {showScoring && TempIcon && tempConfig && (
+            <TempIcon
+              className="h-3.5 w-3.5 shrink-0"
+              style={{ color: tempConfig.color }}
+              title={`${tempConfig.label} (${score}pts)`}
+            />
+          )}
+          {showAgingIndicator && !isStale && deal.stage !== "fechado_ganho" && deal.stage !== "fechado_perdido" && (
             <div
               className={`h-2 w-2 rounded-full shrink-0 ${getAgingColor(days)}`}
               title={`${days}d neste stage`}

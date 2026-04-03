@@ -1,6 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import {
+  CommercialPeriodFilter,
+  filterByPeriod,
+  type CommercialPeriodValue,
+} from "@/features/comercial/components/period-filter-comercial";
 import { useProposals, useProposal, useDeleteProposal, useUpdateProposal } from "@/features/comercial/hooks/use-proposals";
 import type { ProposalStatus } from "@/features/comercial/services/proposals";
 import { ProposalEditorDialog } from "@/features/comercial/components/proposal-editor-dialog";
@@ -197,11 +202,13 @@ function ProposalRow_({ proposal, onEdit, onDelete, onStatusChange }: {
 export default function ComercialPropostas() {
   const [statusTab, setStatusTab] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [period, setPeriod] = useState<CommercialPeriodValue>({ preset: "all" });
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProposalRow | null>(null);
 
-  const { data: allProposals = [], isLoading, error, refetch } = useProposals();
+  const { data: rawProposals = [], isLoading, error, refetch } = useProposals();
+  const allProposals = filterByPeriod(rawProposals, period);
   const { data: editingProposal } = useProposal(editingId);
   const deleteMutation = useDeleteProposal();
   const updateMutation = useUpdateProposal();
@@ -267,9 +274,12 @@ export default function ComercialPropostas() {
             Geração e acompanhamento de propostas comerciais.
           </p>
         </div>
-        <Button onClick={handleNew}>
-          <IconPlus className="h-4 w-4 mr-1" /> Nova Proposta
-        </Button>
+        <div className="flex items-center gap-2">
+          <CommercialPeriodFilter value={period} onChange={setPeriod} />
+          <Button onClick={handleNew}>
+            <IconPlus className="h-4 w-4 mr-1" /> Nova Proposta
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}

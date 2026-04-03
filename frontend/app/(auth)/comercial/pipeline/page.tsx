@@ -25,7 +25,14 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { IconPlus, IconGitBranch, IconCheckbox } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
+import { DEAL_STAGES, type DealStageKey, type LossReasonValue } from "@/lib/constants";
+import { LossReasonDialog } from "@/features/comercial/components/loss-reason-dialog";
+import { ProposalConfirmDialog } from "@/features/comercial/components/proposal-confirm-dialog";
+import {
+  CommercialPeriodFilter,
+  filterByPeriod,
+  type CommercialPeriodValue,
+} from "@/features/comercial/components/period-filter-comercial";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
@@ -40,8 +47,15 @@ export default function PipelinePage() {
   const [editingDeal, setEditingDeal] = useState<DealRow | null>(null);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("all");
 
+  const [period, setPeriod] = useState<CommercialPeriodValue>({ preset: "all" });
+
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Automation dialogs
+  const [lossDialogOpen, setLossDialogOpen] = useState(false);
+  const [proposalDialogOpen, setProposalDialogOpen] = useState(false);
+  const [pendingStageDeal, setPendingStageDeal] = useState<{ id: string; name: string; newStage: string } | null>(null);
 
   const handleBulkToggle = useCallback((dealId: string, checked: boolean) => {
     setSelectedIds((prev) => {
@@ -94,7 +108,8 @@ export default function PipelinePage() {
     owner_name: ownerFilter || undefined,
   }), [stageFilter, search, selectedPipelineId, ownerFilter, isPipelineView]);
 
-  const { data: deals = [], isLoading, error, refetch } = useDeals(activeFilters);
+  const { data: allDeals = [], isLoading, error, refetch } = useDeals(activeFilters);
+  const deals = filterByPeriod(allDeals, period);
   const updateStage = useUpdateDealStage();
   const updateDeal = useUpdateDeal();
 
@@ -125,7 +140,59 @@ export default function PipelinePage() {
   function handleNew() { setEditingDeal(null); setFormOpen(true); }
 
   function handleStageDrop(dealId: string, newStage: string) {
+    const deal = deals.find((d) => d.id === dealId);
+    const dealName = deal?.name ?? "Deal";
+
+    // Confirmation: loss reason required
+    if (newStage === "fechado_perdido") {
+      setPendingStageDeal({ id: dealId, name: dealName, newStage });
+      setLossDialogOpen(true);
+      return;
+    }
+
+    // Confirmation: propose creation on "proposta" stage
+    if (newStage === "proposta" && deal?.stage !== "proposta") {
+      setPendingStageDeal({ id: dealId, name: dealName, newStage });
+      setProposalDialogOpen(true);
+      return;
+    }
+
     updateStage.mutate({ id: dealId, stage: newStage });
+    toast("Deal movido", { description: "Ctrl+Z para desfazer", duration: 3000 });
+  }
+
+  function handleLossConfirm(reason: LossReasonValue, details: string) {
+    if (!pendingStageDeal) return;
+    updateDeal.mutate({
+      id: pendingStageDeal.id,
+      updates: { loss_reason: reason, notes: details ? `[Motivo perda] ${details}` : undefined } as never,
+    });
+    updateStage.mutate({ id: pendingStageDeal.id, stage: "fechado_perdido" });
+    setLossDialogOpen(false);
+    setPendingStageDeal(null);
+    toast("Deal marcado como perdido", { description: `Motivo: ${reason}` });
+  }
+
+  function handleProposalConfirmCreate() {
+    if (!pendingStageDeal) return;
+    updateStage.mutate({ id: pendingStageDeal.id, stage: pendingStageDeal.newStage });
+    setProposalDialogOpen(false);
+    // Navigate to proposal creation with deal context
+    const deal = deals.find((d) => d.id === pendingStageDeal.id);
+    setPendingStageDeal(null);
+    if (deal) {
+      setEditingDeal(null);
+      setFormOpen(false);
+      // Open proposal form pre-filled — using URL with deal_id param
+      window.location.href = `/comercial/propostas?deal_id=${deal.id}&auto=1`;
+    }
+  }
+
+  function handleProposalSkip() {
+    if (!pendingStageDeal) return;
+    updateStage.mutate({ id: pendingStageDeal.id, stage: pendingStageDeal.newStage });
+    setProposalDialogOpen(false);
+    setPendingStageDeal(null);
     toast("Deal movido", { description: "Ctrl+Z para desfazer", duration: 3000 });
   }
 
@@ -164,6 +231,7 @@ export default function PipelinePage() {
             <p className="text-sm text-gray-500">Kanban de deals e funis comerciais.</p>
           </div>
           <div className="flex items-center gap-2">
+            <CommercialPeriodFilter value={period} onChange={setPeriod} />
             <Button variant={bulkMode ? "secondary" : "ghost"} size="sm" onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }} className="gap-1.5">
               <IconCheckbox className="h-4 w-4" />
               {bulkMode ? "Cancelar seleção" : "Selecionar"}
@@ -199,6 +267,21 @@ export default function PipelinePage() {
         <BulkActionBar selectedCount={selectedIds.size} onMoveToStage={handleBulkMoveToStage} onAssignOwner={handleBulkAssignOwner} onClear={handleBulkClear} owners={owners} />
         <DealDetailDialog deal={selectedDeal} open={detailOpen} onOpenChange={setDetailOpen} onEdit={handleEdit} />
         <DealFormDialog open={formOpen} onOpenChange={setFormOpen} deal={editingDeal} />
+
+        {/* Automation dialogs */}
+        <LossReasonDialog
+          open={lossDialogOpen}
+          onOpenChange={(open) => { setLossDialogOpen(open); if (!open) setPendingStageDeal(null); }}
+          dealName={pendingStageDeal?.name ?? ""}
+          onConfirm={handleLossConfirm}
+        />
+        <ProposalConfirmDialog
+          open={proposalDialogOpen}
+          onOpenChange={(open) => { setProposalDialogOpen(open); if (!open) setPendingStageDeal(null); }}
+          dealName={pendingStageDeal?.name ?? ""}
+          onCreateProposal={handleProposalConfirmCreate}
+          onSkip={handleProposalSkip}
+        />
       </div>
     </RequireRole>
   );

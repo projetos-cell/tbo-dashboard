@@ -21,10 +21,20 @@ import {
   computeBUDistribution,
   computeAvgPriceByBU,
   computeStrategicInsights,
+  computeLossReasons,
+  getLossInsight,
   type ProductData,
   type BUDistribution,
   type BUAvgPrice,
 } from "@/features/comercial/services/commercial-analytics";
+import {
+  CommercialPeriodFilter,
+  filterByPeriod,
+  type CommercialPeriodValue,
+} from "@/features/comercial/components/period-filter-comercial";
+import { computeForecast } from "@/features/comercial/lib/forecast";
+import { ForecastChart } from "@/features/comercial/components/forecast-chart";
+import { LossAnalytics } from "@/features/comercial/components/loss-analytics";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -134,11 +144,13 @@ function ProductMixSection({ products, buDist, buAvgPrice }: ProductMixSectionPr
 
 export default function ComercialRelatorios() {
   const [pipelineFilter, setPipelineFilter] = useState("all");
+  const [period, setPeriod] = useState<CommercialPeriodValue>({ preset: "all" });
   const { data: pipelines = [] } = usePipelines();
 
-  const { data: deals = [], isLoading } = useDeals({
+  const { data: rawDeals = [], isLoading } = useDeals({
     pipeline: pipelineFilter !== "all" ? pipelineFilter : undefined,
   });
+  const deals = filterByPeriod(rawDeals, period);
 
   const kpis = useMemo(() => computeCommercialKPIs(deals), [deals]);
   const monthly = useMemo(() => computeMonthlyRevenue(deals), [deals]);
@@ -153,6 +165,9 @@ export default function ComercialRelatorios() {
     () => computeStrategicInsights(deals, kpis, clients, products, buDist),
     [deals, kpis, clients, products, buDist],
   );
+  const forecast = useMemo(() => computeForecast(deals), [deals]);
+  const lossData = useMemo(() => computeLossReasons(deals), [deals]);
+  const lossInsight = useMemo(() => getLossInsight(lossData), [lossData]);
 
   return (
     <RequireRole module="comercial">
@@ -168,6 +183,7 @@ export default function ComercialRelatorios() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <CommercialPeriodFilter value={period} onChange={setPeriod} />
             {pipelines.length > 0 && (
               <Select value={pipelineFilter} onValueChange={setPipelineFilter}>
                 <SelectTrigger className="w-[200px]">
@@ -296,6 +312,37 @@ export default function ComercialRelatorios() {
                 buDist={buDist}
                 buAvgPrice={buAvgPrice}
               />
+            )}
+
+            {/* Forecast */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Forecast de Receita
+              </p>
+            </div>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Forecast Ponderado por Mês</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Baseado em expected_close e probabilidade dos deals ativos
+                </p>
+              </CardHeader>
+              <CardContent>
+                <ForecastChart data={forecast} />
+              </CardContent>
+            </Card>
+
+            {/* Loss Analytics */}
+            {lossData.length > 0 && (
+              <>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Análise de Perdas
+                  </p>
+                </div>
+                <LossAnalytics data={lossData} insight={lossInsight} />
+              </>
             )}
 
             {/* Insights & Recomendações */}

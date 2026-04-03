@@ -1,6 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import {
+  CommercialPeriodFilter,
+  filterByPeriod,
+  type CommercialPeriodValue,
+} from "@/features/comercial/components/period-filter-comercial";
 import { useDeals, useUpdateDealStage } from "@/features/comercial/hooks/use-commercial";
 import { DealDetailDialog } from "@/features/comercial/components/deal-detail-dialog";
 import { DealFormDialog } from "@/features/comercial/components/deal-form-dialog";
@@ -45,9 +50,11 @@ export default function ComercialLeads() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<DealRow | null>(null);
 
+  const [period, setPeriod] = useState<CommercialPeriodValue>({ preset: "all" });
   const updateStage = useUpdateDealStage();
 
-  const { data: allLeads = [], isLoading, error, refetch } = useDeals();
+  const { data: rawLeads = [], isLoading, error, refetch } = useDeals();
+  const allLeads = filterByPeriod(rawLeads, period);
 
   // Filter to lead stages on client (avoids multiple queries)
   const leads = useMemo(() => {
@@ -108,9 +115,12 @@ export default function ComercialLeads() {
           <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
           <p className="text-muted-foreground text-sm">Gestão e qualificação de leads comerciais.</p>
         </div>
-        <Button onClick={handleNewLead}>
-          <IconPlus className="mr-1 h-4 w-4" /> Novo Lead
-        </Button>
+        <div className="flex items-center gap-2">
+          <CommercialPeriodFilter value={period} onChange={setPeriod} />
+          <Button onClick={handleNewLead}>
+            <IconPlus className="mr-1 h-4 w-4" /> Novo Lead
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}

@@ -44,12 +44,12 @@ export function ProposalWhyTBO() {
         viewport={{ once: true, margin: "-60px" }}
         transition={{ duration: 0.4 }}
       >
-        <h2 className="text-xl font-bold text-zinc-900 mb-2">Por que a TBO</h2>
-        <p className="text-sm text-zinc-500 mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-zinc-900 mb-1 sm:mb-2">Por que a TBO</h2>
+        <p className="text-xs sm:text-sm text-zinc-500 mb-3 sm:mb-6">
           O que diferencia a TBO de outros estúdios de visualização.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
           {DIFFERENTIALS.map((diff, idx) => {
             const Icon = diff.icon;
             return (
@@ -59,17 +59,18 @@ export function ProposalWhyTBO() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.3, delay: idx * 0.08 }}
-                className="bg-white rounded-xl border p-5 shadow-sm hover:shadow-md transition-shadow group"
+                className="bg-white rounded-xl border p-3 sm:p-5 shadow-sm hover:shadow-md transition-shadow group"
               >
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0 group-hover:bg-zinc-200 transition-colors">
-                    <Icon size={20} className="text-zinc-600" />
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0 group-hover:bg-zinc-200 transition-colors">
+                    <Icon size={18} className="text-zinc-600 sm:hidden" />
+                    <Icon size={20} className="text-zinc-600 hidden sm:block" />
                   </div>
-                  <div>
-                    <p className="font-semibold text-zinc-900 text-sm mb-1">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-zinc-900 text-xs sm:text-sm mb-0.5 sm:mb-1">
                       {diff.title}
                     </p>
-                    <p className="text-xs text-zinc-500 leading-relaxed">
+                    <p className="text-[11px] sm:text-xs text-zinc-500 leading-relaxed">
                       {diff.description}
                     </p>
                   </div>

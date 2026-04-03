@@ -569,21 +569,21 @@ export function ProposalD3DFlow() {
         transition={{ duration: 0.4 }}
       >
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg bg-[#18181B] flex items-center justify-center">
-              <span className="text-white font-bold text-sm">D3D</span>
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-[#18181B] flex items-center justify-center">
+              <span className="text-white font-bold text-xs sm:text-sm">D3D</span>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-zinc-900">
+              <h2 className="text-lg sm:text-xl font-bold text-zinc-900">
                 Digital 3D — Fluxo de Projeto
               </h2>
-              <p className="text-sm text-zinc-500">
-                Pipeline completo: do briefing à entrega final aprovada
+              <p className="text-xs sm:text-sm text-zinc-500">
+                Pipeline completo: do briefing à entrega final
               </p>
             </div>
           </div>
-          <p className="text-sm text-zinc-600 leading-relaxed max-w-2xl">
+          <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed max-w-2xl hidden sm:block">
             8 fases de produção, 4 entregas com aprovação do cliente, 3 rodadas
             de refinamento. Cada etapa avança somente após validação — nada é
             entregue sem controle de qualidade.
@@ -611,16 +611,16 @@ export function ProposalD3DFlow() {
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 justify-center mt-4">
+        <div className="flex flex-wrap gap-3 sm:gap-4 justify-center mt-3 sm:mt-4">
           {[
-            { color: "#E85102", label: "Kickoff / Input" },
-            { color: "#3F3F46", label: "Produção TBO" },
-            { color: "#A1A1AA", label: "Aprovação Cliente" },
-            { color: "#18181B", label: "Entrega Final" },
+            { color: "#E85102", label: "Kickoff" },
+            { color: "#3F3F46", label: "Produção" },
+            { color: "#A1A1AA", label: "Aprovação" },
+            { color: "#18181B", label: "Entrega" },
           ].map((l) => (
-            <div key={l.label} className="flex items-center gap-2 text-xs text-zinc-400">
+            <div key={l.label} className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-zinc-400">
               <div
-                className="w-2.5 h-2.5 rounded-sm"
+                className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm"
                 style={{ backgroundColor: l.color }}
               />
               {l.label}
@@ -628,8 +628,8 @@ export function ProposalD3DFlow() {
           ))}
         </div>
 
-        {/* Footnote */}
-        <p className="text-[11px] text-zinc-400 text-center mt-4 max-w-xl mx-auto leading-relaxed">
+        {/* Footnote — hidden on mobile */}
+        <p className="hidden sm:block text-[11px] text-zinc-400 text-center mt-4 max-w-xl mx-auto leading-relaxed">
           Cada entrega ao cliente requer aprovação formal antes de iniciar a
           próxima rodada. Rodadas adicionais além da R02 são escopo extra. Prazos
           estimados para projeto de complexidade média.

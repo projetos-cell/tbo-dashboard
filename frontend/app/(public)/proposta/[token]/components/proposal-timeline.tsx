@@ -38,16 +38,15 @@ export function ProposalTimeline() {
         viewport={{ once: true, margin: "-60px" }}
         transition={{ duration: 0.4 }}
       >
-        <h2 className="text-xl font-bold text-zinc-900 mb-2">
+        <h2 className="text-lg sm:text-xl font-bold text-zinc-900 mb-1 sm:mb-2">
           Timeline Indicativa
         </h2>
-        <p className="text-sm text-zinc-500 mb-6">
-          Cronograma estimado com marcos principais. Detalhamento final após
-          aprovação.
+        <p className="text-xs sm:text-sm text-zinc-500 mb-4 sm:mb-6">
+          Cronograma estimado com marcos principais.
         </p>
 
         {/* Progress bar visual */}
-        <div className="mb-8 bg-white rounded-xl border shadow-sm p-5">
+        <div className="mb-5 sm:mb-8 bg-white rounded-xl border shadow-sm p-3 sm:p-5">
           <div className="flex rounded-lg overflow-hidden h-3 mb-3">
             {TIMELINE_STAGES.map((stage, idx) => (
               <motion.div
@@ -82,7 +81,7 @@ export function ProposalTimeline() {
           {/* Vertical line */}
           <div className="absolute left-5 top-0 bottom-0 w-px bg-zinc-200 hidden sm:block" />
 
-          <div className="space-y-4">
+          <div className="space-y-2.5 sm:space-y-4">
             {TIMELINE_STAGES.map((stage, idx) => (
               <motion.div
                 key={idx}
@@ -90,24 +89,24 @@ export function ProposalTimeline() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.3, delay: idx * 0.1 }}
-                className="flex items-start gap-4 relative"
+                className="flex items-start gap-2.5 sm:gap-4 relative"
               >
                 {/* Dot */}
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 relative z-10"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white text-[10px] sm:text-xs font-bold shrink-0 relative z-10"
                   style={{ backgroundColor: stage.color }}
                 >
                   {String(idx + 1).padStart(2, "0")}
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 bg-white rounded-xl border shadow-sm p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="font-semibold text-zinc-900 text-sm">
+                <div className="flex-1 bg-white rounded-xl border shadow-sm p-3 sm:p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                    <p className="font-semibold text-zinc-900 text-xs sm:text-sm">
                       {stage.label}
                     </p>
                     <span
-                      className="text-xs font-medium px-2 py-0.5 rounded-full"
+                      className="text-[10px] sm:text-xs font-medium px-1.5 sm:px-2 py-0.5 rounded-full"
                       style={{
                         backgroundColor: `${stage.color}12`,
                         color: stage.color,
@@ -116,7 +115,7 @@ export function ProposalTimeline() {
                       {stage.week}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500">{stage.description}</p>
+                  <p className="text-[11px] sm:text-xs text-zinc-500">{stage.description}</p>
                 </div>
               </motion.div>
             ))}

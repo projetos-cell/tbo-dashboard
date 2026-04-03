@@ -17,7 +17,7 @@ export function ProposalUpsell() {
         <div className="absolute inset-0 bg-gradient-to-br from-[#18181B] via-[#27272A] to-[#18181B]" />
 
         {/* Content */}
-        <div className="relative px-6 py-8">
+        <div className="relative px-4 py-5 sm:px-6 sm:py-8">
           <div className="flex items-center gap-2 mb-3">
             <IconSparkles size={20} className="text-[#E85102]" />
             <span className="text-xs font-bold text-[#E85102] uppercase tracking-wider">
@@ -25,16 +25,16 @@ export function ProposalUpsell() {
             </span>
           </div>
 
-          <h3 className="text-lg font-bold text-white mb-2">
+          <h3 className="text-base sm:text-lg font-bold text-white mb-1.5 sm:mb-2">
             D3D + Branding do Empreendimento
           </h3>
-          <p className="text-sm text-zinc-400 leading-relaxed mb-5 max-w-xl">
+          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed mb-3 sm:mb-5 max-w-xl">
             Contrate a visualização 3D integrada com o branding do empreendimento.
             Naming, identidade visual, key visual — tudo alinhado com a direção
             criativa do 3D. Briefing único, equipe integrada, menos retrabalho.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-5">
             {[
               {
                 title: "Consistência",
